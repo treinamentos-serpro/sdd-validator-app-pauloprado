@@ -144,6 +144,33 @@ interface WeatherViewState {
 
 ## Data Flow
 
+```mermaid
+flowchart TD
+  A[Input de busca] --> B{Input vazio?}
+  B -- Sim --> C[UI: solicitar nome da cidade]
+  B -- Não --> D[useWeather: busca loading]
+  D --> E[Service de geocoding]
+  E --> F{Resposta do geocoding}
+  F -- Zero resultados --> G[useWeather: empty]
+  G --> H[UI: Nenhuma cidade encontrada]
+  F -- Erro de rede ou API --> I[useWeather: error]
+  I --> J[UI: Falha na busca e Tentar novamente]
+  J -. Retry .-> D
+  F -- Resultados --> K[UI: exibir cidades]
+  K --> L[Seleção de cidade]
+  L --> M[useWeather: current e forecast loading]
+  M --> N[Service de forecast: current e daily]
+  M --> O[UI: indicador de carregamento]
+  N --> P{Resposta meteorológica}
+  P -- Completa --> Q[useWeather: success]
+  P -- Parcial --> R[useWeather: success parcial]
+  P -- Erro ou timeout --> S[useWeather: error]
+  Q --> T[Componentes de UI: clima e previsão]
+  R --> U[UI: dados válidos e ausências sinalizadas]
+  S --> V[UI: falha e Tentar novamente]
+  V -. Retry da operação falha .-> M
+```
+
 1. A pessoa informa o nome da cidade. Antes de enviar, o hook remove somente espaços externos (`trim`); busca vazia não chama serviço. Preserva Unicode, acentos, apóstrofos, pontuação e espaços internos.
 2. O hook define a busca como loading e chama o serviço de geocoding com o texto aparado. Resultado vazio encerra em `empty`, sem solicitar forecast.
 3. A UI apresenta nome e, quando disponíveis, região administrativa e país. A seleção identifica uma cidade concreta, incluindo coordenadas e metadados retornados.
