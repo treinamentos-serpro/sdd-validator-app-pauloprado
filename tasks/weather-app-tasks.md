@@ -328,7 +328,7 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 ### T-39
 - **Título:** Testar E2E mobile
 - **Descrição curta:** Playwright com rotas interceptadas em 320 e 375 px.
-- **Critérios de aceite:** `pnpm test:e2e -- tests/e2e/weather-mobile.spec.ts` passa em 320 e 375 px com rotas interceptadas, fixtures e relógio/timezone controlados: busca→seleção→dados, alternância Celsius/Fahrenheit e erro→retry; controles alcançáveis por teclado, sem rolagem horizontal ou sobreposição em cada viewport. Asserts visuais/DOM confirmam o estado e valores esperados; sem API ao vivo e sem alegar medição NFR por mock (AC-01, AC-02, AC-03, AC-05, AC-06, AC-07b, AC-08; NFR-01, NFR-03, NFR-07).
+- **Critérios de aceite:** `pnpm test:e2e -- tests/e2e/weather-mobile.spec.ts` passa em 320 e 375 px com rotas interceptadas, fixtures e relógio/timezone controlados: busca→seleção→clima atual e exatamente cinco datas locais da previsão→alternância Celsius/Fahrenheit; erro→retry. Controles são alcançáveis por teclado, sem rolagem horizontal ou sobreposição em cada viewport. Asserts DOM confirmam estados e valores esperados; sem API ao vivo e sem alegar medição NFR por mock (AC-01, AC-02, AC-03, AC-04, AC-05, AC-06, AC-07b, AC-08; NFR-01, NFR-03, NFR-07).
 - **Dependências:** T-01, T-02, T-03, T-36, T-37
 - **Arquivos prováveis:** `tests/e2e/weather-mobile.spec.ts`
 - **Tipo:** Test
@@ -382,6 +382,21 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Dependências:** T-03, T-42
 - **Arquivos prováveis:** `tests/quality/availability-results.md`
 - **Tipo:** Test
+
+## Rastreabilidade FR → Tarefas
+
+| Requisito funcional | Tarefas de implementação | Tarefas de teste/validação |
+| --- | --- | --- |
+| FR-01 — Buscar cidades | T-16 (geocoding), T-20 (orquestração), T-22 (formulário), T-25 (estado sem resultados) | T-07, T-17, T-21, T-27, T-29, T-37, T-38, T-39 |
+| FR-02 — Selecionar cidade | T-16 (resultados de geocoding), T-20 (seleção), T-23 (resultados contextuais) | T-07, T-17, T-21, T-28, T-37, T-38, T-39 |
+| FR-03 — Consultar clima atual | T-08 (normalização), T-18 (serviço forecast/current), T-20 (estado), T-30 (apresentação atual) | T-09, T-19, T-21, T-31, T-37, T-38, T-39 |
+| FR-04 — Consultar previsão de cinco datas | T-10 (normalização), T-18 (serviço forecast), T-20 (estado), T-32 (apresentação forecast) | T-11, T-19, T-21, T-33, T-37, T-38, T-39 |
+| FR-05 — Alternar Celsius/Fahrenheit | T-12 (conversão), T-20 (estado da unidade), T-34 (controle) | T-13, T-21, T-35, T-37, T-38, T-39 |
+| FR-06 — Atualizar dados ao trocar cidade | T-20 (orquestração e concorrência), T-23 (seleção), T-30 (clima atual), T-32 (previsão), T-36 (composição) | T-21, T-28, T-31, T-33, T-37, T-38, T-39 |
+| FR-07 — Informar falhas e permitir nova tentativa | T-16, T-18 (classificação de falhas), T-20 (erro/retry), T-25 (vazio), T-26 (erro) | T-17, T-19, T-21, T-29, T-37, T-38, T-39 |
+| FR-08 — Indicar carregamento | T-20 (estado loading), T-24 (apresentação loading), T-36 (composição) | T-21, T-29, T-37, T-38, T-39 |
+
+Todos os requisitos FR-01 a FR-08 têm ao menos uma tarefa de implementação e uma tarefa de teste/validação. Nenhum requisito funcional está sem cobertura no backlog.
 
 ## Bloqueios finais
 Tarefas dependentes não podem assumir valores provisórios: decisões de busca (count, idioma, acentos e contexto), campos/granularidade, fallback de timezone, timeout, freshness, conversão/arredondamento/persistência, tabela WMO, matriz de navegadores e métodos/limiares NFR exigem escolha aprovada com aprovador e fonte no artefato indicado; sem isso, a tarefa correspondente fica `Bloqueada`. Medições de usabilidade, performance e disponibilidade só concluem com participantes ou evidência operacional no ambiente e método aprovados. Mantêm-se fora de escopo autenticação, persistência no servidor, GPS, offline/cache, app nativo, alertas, favoritos, histórico, compartilhamento, notificações e deploy.
