@@ -2,7 +2,8 @@
 
 Decisões ainda abertas são gates: tarefas dependentes só avançam com escolhas aprovadas registradas. Nenhum valor provisório é presumido. Caminhos são previsões de artefatos, não afirmações de que arquivos de código já existem.
 
-## Entrega 1 — Decisões e contratos
+## Entrega 1 — Decisões e contratos de API
+
 
 ### T-01
 - **Título:** Fechar decisões de busca e seleção
@@ -16,7 +17,7 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Título:** Fechar decisões meteorológicas e de unidade
 - **Descrição curta:** Registrar campos/granularidade, fallback de timezone, timeout, freshness, arredondamento/persistência e tabela WMO pt-BR de rótulos/ícones; resolver a inconsistência sobre ausência de temperatura utilizável.
 - **Critérios de aceite:** Em `specs/weather-app-spec.md`, campos/granularidade, fallback de timezone, timeout, freshness, arredondamento/persistência da unidade, tabela WMO pt-BR e regra para ausência total de temperatura têm pergunta, escolha, aprovador e fonte; cada item sem aprovação fica `Bloqueado`, sem valor provisório. Conferir FR-03–FR-05, AC-03b, AC-03c, AC-04b, AC-05, AC-07d e NFR-06.
-- **Dependências:** T-01
+- **Dependências:** Nenhuma
 - **Arquivos prováveis:** `specs/weather-app-spec.md`
 - **Tipo:** Infra
 
@@ -24,7 +25,7 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Título:** Fechar critérios de qualidade e medição
 - **Descrição curta:** Registrar matriz de navegadores/dispositivos, nível de acessibilidade e métodos, ambientes, amostras e limites para avaliar NFRs.
 - **Critérios de aceite:** Em `specs/weather-app-spec.md` e `plans/weather-app-plan.md`, matriz de navegadores, nível de acessibilidade e método/ambiente/amostra/limites de NFR-02, NFR-04 e NFR-05 registram pergunta, escolha, aprovador e fonte. Itens sem aprovação ficam `Bloqueados`; métodos distinguem app de provedor e medição real de mock (NFR-01–NFR-05, NFR-07).
-- **Dependências:** T-02
+- **Dependências:** Nenhuma
 - **Arquivos prováveis:** `specs/weather-app-spec.md`, `plans/weather-app-plan.md`
 - **Tipo:** Infra
 
@@ -36,13 +37,13 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Arquivos prováveis:** `plans/weather-app-plan.md`
 - **Tipo:** Infra
 
-## Entrega 2 — Contratos e funções puras
+## Entrega 2 — Tipos e funções puras de produção
 
 ### T-05
 - **Título:** Definir contratos TypeScript do domínio
 - **Descrição curta:** Criar tipos estritos para cidade, unidade, dados, estados, erros e respostas parciais.
 - **Critérios de aceite:** `src/types/weather.ts` representa cidade/coordenadas, unidade, estados discriminados e ausências sem `any`; só inclui campos/granularidade aprovados e preserva current/forecast independentes. `pnpm build` conclui sem erro TypeScript strict; decisão aplicável sem aprovação mantém a tarefa `Bloqueada` (FR-02–FR-07; AC-03b, AC-03c, AC-04b, AC-06; NFR-06).
-- **Dependências:** T-01, T-02, T-04
+- **Dependências:** T-01, T-02, T-03, T-04
 - **Arquivos prováveis:** `src/types/weather.ts`
 - **Tipo:** Data
 
@@ -54,14 +55,6 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Arquivos prováveis:** `src/lib/normalizeGeocoding.ts`
 - **Tipo:** Data
 
-### T-07
-- **Título:** Testar normalização de geocoding
-- **Descrição curta:** Cobrir a função pura com Vitest e fixtures, sem rede.
-- **Critérios de aceite:** `pnpm test -- tests/lib/normalizeGeocoding.test.ts` passa com fixtures que afirmam: cidade válida preserva nome/coordenadas/contexto; contexto ausente permanece opcional; resultados vazios não são erro; JSON/estrutura malformada e latitude/longitude ausentes, não numéricas ou fora do intervalo não geram cidade. Nenhum teste acessa rede real (FR-01, FR-02, FR-07; AC-01, AC-02, AC-07a, AC-07c).
-- **Dependências:** T-01, T-04, T-06
-- **Arquivos prováveis:** `tests/lib/normalizeGeocoding.test.ts`
-- **Tipo:** Test
-
 ### T-08
 - **Título:** Implementar normalização de clima atual
 - **Descrição curta:** Validar e mapear campos atuais aprovados, preservando dados válidos e representando ausências.
@@ -69,14 +62,6 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Dependências:** T-02, T-04, T-05
 - **Arquivos prováveis:** `src/lib/normalizeCurrentWeather.ts`
 - **Tipo:** Data
-
-### T-09
-- **Título:** Testar normalização de clima atual
-- **Descrição curta:** Cobrir payload atual com Vitest, sem serviço ou UI.
-- **Critérios de aceite:** `pnpm test -- tests/lib/normalizeCurrentWeather.test.ts` passa com asserts para temperatura 18 °C válida, campo aprovado ausente/inválido como indisponível, unidade inesperada rejeitada, temperatura ausente com outro campo válido preservado, nenhum campo utilizável conforme decisão T-02 e payload malformado sem valores inventados. Fixtures locais, sem API ou serviço real (FR-03; AC-03, AC-03b, AC-03c; NFR-06).
-- **Dependências:** T-02, T-08
-- **Arquivos prováveis:** `tests/lib/normalizeCurrentWeather.test.ts`
-- **Tipo:** Test
 
 ### T-10
 - **Título:** Implementar normalização de forecast
@@ -86,14 +71,6 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Arquivos prováveis:** `src/lib/normalizeForecast.ts`
 - **Tipo:** Data
 
-### T-11
-- **Título:** Testar normalização de forecast
-- **Descrição curta:** Cobrir datas locais e respostas parciais com relógio/timezone controlados.
-- **Critérios de aceite:** `pnpm test -- tests/lib/normalizeForecast.test.ts` passa com relógio/timezone controlados: cinco datas locais consecutivas incluem hoje e não uma sexta; cruzar meia-noite usa o dia local aprovado; datas/campos ausentes ou inválidos não são inventados; menos de cinco é incompleto; nenhuma data válida é indisponível; payload malformado não vira previsão. Sem rede real (FR-04; AC-04, AC-04b; NFR-06).
-- **Dependências:** T-02, T-10
-- **Arquivos prováveis:** `tests/lib/normalizeForecast.test.ts`
-- **Tipo:** Test
-
 ### T-12
 - **Título:** Implementar conversão de temperatura
 - **Descrição curta:** Criar conversão/formatação pura dos campos aprovados, mantendo Celsius canônico.
@@ -101,14 +78,6 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Dependências:** T-02, T-05
 - **Arquivos prováveis:** `src/lib/temperature.ts`
 - **Tipo:** Data
-
-### T-13
-- **Título:** Testar conversão de temperatura
-- **Descrição curta:** Validar conversão e formatação em Vitest.
-- **Critérios de aceite:** `pnpm test -- tests/lib/temperature.test.ts` passa afirmando `0 °C = 32 °F`, `20 °C = 68 °F`, retorno aos valores Celsius originais e ausência de mutação; testa casas/arredondamento somente conforme decisão aprovada em T-02. Testes puros, sem chamadas de rede (FR-05; AC-05; NFR-06).
-- **Dependências:** T-02, T-12
-- **Arquivos prováveis:** `tests/lib/temperature.test.ts`
-- **Tipo:** Test
 
 ### T-14
 - **Título:** Implementar tabela de códigos WMO
@@ -118,15 +87,7 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Arquivos prováveis:** `src/lib/weatherCode.ts`
 - **Tipo:** Data
 
-### T-15
-- **Título:** Testar tabela de códigos WMO
-- **Descrição curta:** Cobrir mapeamentos e fallback com Vitest.
-- **Critérios de aceite:** `pnpm test -- tests/lib/weatherCode.test.ts` passa verificando cada mapeamento aprovado de código para rótulo/ícone e o comportamento aprovado para código desconhecido; não aceita conteúdo não presente na tabela T-02. Fixtures locais, sem API (FR-03, FR-04; AC-03b, AC-04b; NFR-06).
-- **Dependências:** T-02, T-14
-- **Arquivos prováveis:** `tests/lib/weatherCode.test.ts`
-- **Tipo:** Test
-
-## Entrega 3 — Serviços
+## Entrega 3 — Services de produção
 
 ### T-16
 - **Título:** Implementar serviço de geocoding
@@ -136,14 +97,6 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Arquivos prováveis:** `src/services/geocoding.ts`
 - **Tipo:** Data
 
-### T-17
-- **Título:** Testar geocoding com fetch mockado
-- **Descrição curta:** Testar somente serviço, com Vitest e `fetch` mockado.
-- **Critérios de aceite:** `pnpm test -- tests/services/geocoding.test.ts` passa com `fetch` mockado: URL e parâmetros aprovados; `trim` apenas externo e Unicode/apóstrofo preservados; sucesso e zero resultados distintos; JSON inválido, rejeição de rede, HTTP 429, 5xx e outros não-2xx resultam em erro; input vazio tem zero chamadas. Nenhum teste acessa API ao vivo (FR-01, FR-02, FR-07; AC-01, AC-01b, AC-01c, AC-07a, AC-07c).
-- **Dependências:** T-01, T-04, T-16
-- **Arquivos prováveis:** `tests/services/geocoding.test.ts`
-- **Tipo:** Test
-
 ### T-18
 - **Título:** Implementar serviço de forecast
 - **Descrição curta:** Consultar current/forecast segundo contrato aprovado, verificar HTTP e entregar payload à normalização.
@@ -152,15 +105,7 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Arquivos prováveis:** `src/services/forecast.ts`
 - **Tipo:** Data
 
-### T-19
-- **Título:** Testar forecast com fetch mockado
-- **Descrição curta:** Testar somente serviço de forecast, sem rede real.
-- **Critérios de aceite:** `pnpm test -- tests/services/forecast.test.ts` passa com `fetch` mockado e relógio controlado: coordenadas/parâmetros aprovados; sucesso e payload parcial; JSON inválido, rede, HTTP 429, 5xx e outros não-2xx como erro; timeout e duração conforme T-02 somente se aprovados. Asserções cobrem status/resultado e nenhuma API ao vivo é acessada; mocks não servem como medição NFR (FR-03, FR-04, FR-07; AC-03b, AC-03c, AC-04b, AC-07b, AC-07d).
-- **Dependências:** T-01, T-02, T-04, T-18
-- **Arquivos prováveis:** `tests/services/forecast.test.ts`
-- **Tipo:** Test
-
-## Entrega 4 — Hook e interface
+## Entrega 4 — Hook de produção
 
 ### T-20
 - **Título:** Implementar hook de busca e clima
@@ -170,13 +115,7 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Arquivos prováveis:** `src/hooks/useWeather.ts`
 - **Tipo:** Data
 
-### T-21
-- **Título:** Testar hook, retry e concorrência
-- **Descrição curta:** Testar hook com Testing Library, promises e relógio controlados.
-- **Critérios de aceite:** `pnpm test -- tests/hooks/useWeather.test.ts` passa com serviços mockados, promises/relógio controlados: estados iniciais e loading/success/empty/error; input vazio e zero hits sem forecast; current válido com forecast falho e vice-versa; retry isolado; loading removido após término; resposta tardia A ignorada após B; 0/20 °C exibidos como 32/68 °F e retorno sem nova chamada; timeout somente no limite aprovado. Nenhum teste usa API ao vivo (FR-01, FR-03–FR-08; AC-01b, AC-03b, AC-03c, AC-04b, AC-05, AC-06b, AC-07a–AC-08; NFR-06).
-- **Dependências:** T-01, T-02, T-20
-- **Arquivos prováveis:** `tests/hooks/useWeather.test.ts`
-- **Tipo:** Test
+## Entrega 5 — Componentes de produção
 
 ### T-22
 - **Título:** Implementar formulário de busca
@@ -210,6 +149,7 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Arquivos prováveis:** `src/components/states/EmptyState.tsx`
 - **Tipo:** UI
 
+
 ### T-26
 - **Título:** Implementar estado visual de erro
 - **Descrição curta:** Apresentar mensagem de erro e retry explícito da operação correspondente.
@@ -217,6 +157,107 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Dependências:** T-02, T-20
 - **Arquivos prováveis:** `src/components/states/ErrorState.tsx`
 - **Tipo:** UI
+
+### T-30
+- **Título:** Implementar clima atual
+- **Descrição curta:** Apresentar campos aprovados, indisponibilidade e WMO aprovado.
+- **Critérios de aceite:** Para a cidade vigente, exibe temperatura válida (fixture 18 °C como `18 °C`) e somente campos aprovados; campo ausente aparece `Indisponível`, sem valor inventado ou dado da cidade anterior. Temperatura ausente com outros campos válidos e ausência total seguem decisão T-02; testar em T-31 e bloquear escopo não aprovado (FR-03, FR-06; AC-03, AC-03b, AC-03c, AC-06; NFR-06).
+- **Dependências:** T-02, T-05, T-08, T-12, T-14, T-20
+- **Arquivos prováveis:** `src/components/CurrentWeather.tsx`
+- **Tipo:** UI
+
+### T-32
+- **Título:** Implementar forecast
+- **Descrição curta:** Apresentar datas/campos aprovados e estados incompleto/indisponível.
+- **Critérios de aceite:** Para a cidade selecionada, mostra somente campos/granularidade aprovados e datas locais válidas recebidas, no máximo cinco começando por hoje; lacunas não são preenchidas; menos de cinco é `Previsão incompleta` e nenhuma data válida é `Previsão indisponível`. Fuso/fallback segue T-02; campo ou decisão pendente bloqueia a tarefa (FR-04; AC-04, AC-04b; NFR-06).
+- **Dependências:** T-02, T-05, T-10, T-12, T-14, T-20
+- **Arquivos prováveis:** `src/components/Forecast.tsx`
+- **Tipo:** UI
+
+### T-34
+- **Título:** Implementar controle de unidade
+- **Descrição curta:** Criar controle acessível que atualiza a unidade de apresentação.
+- **Critérios de aceite:** Controle acessível inicia em Celsius; ao alternar, valores canônicos 0/20 °C são apresentados como 32/68 °F e retornam a 0/20 °C sem nova chamada de geocoding/forecast. Campos e arredondamento seguem T-02; não presume persistência entre sessões nem valor pendente (FR-05; AC-05; NFR-03, NFR-06).
+- **Dependências:** T-02, T-12, T-20
+- **Arquivos prováveis:** `src/components/UnitToggle.tsx`
+- **Tipo:** UI
+
+
+## Entrega 6 — Integração
+
+### T-36
+- **Título:** Compor experiência em App
+- **Descrição curta:** Integrar hook, busca, estados, clima, forecast e unidade sem chamadas de API na UI.
+- **Critérios de aceite:** `App` compõe busca, seleção explícita, estados, clima, previsão e unidade sem chamadas de API em componentes; com serviços controlados, seleciona cidade, não mostra A como atual após selecionar B e mantém uma seção válida de B quando a outra falha. Verificar integração em T-37; só contratos aprovados são usados (FR-01, FR-02, FR-03–FR-08; AC-02, AC-03b, AC-04b, AC-05, AC-06, AC-06b, AC-07b, AC-08; NFR-06).
+- **Dependências:** T-01, T-02, T-20, T-22, T-23, T-24, T-25, T-26, T-30, T-32, T-34
+- **Arquivos prováveis:** `src/App.tsx`
+- **Tipo:** UI
+
+## Entrega 7 — Testes
+
+### T-07
+- **Título:** Testar normalização de geocoding
+- **Descrição curta:** Cobrir a função pura com Vitest e fixtures, sem rede.
+- **Critérios de aceite:** `pnpm test -- tests/lib/normalizeGeocoding.test.ts` passa com fixtures que afirmam: cidade válida preserva nome/coordenadas/contexto; contexto ausente permanece opcional; resultados vazios não são erro; JSON/estrutura malformada e latitude/longitude ausentes, não numéricas ou fora do intervalo não geram cidade. Nenhum teste acessa rede real (FR-01, FR-02, FR-07; AC-01, AC-02, AC-07a, AC-07c).
+- **Dependências:** T-01, T-04, T-06
+- **Arquivos prováveis:** `tests/lib/normalizeGeocoding.test.ts`
+- **Tipo:** Test
+
+### T-09
+- **Título:** Testar normalização de clima atual
+- **Descrição curta:** Cobrir payload atual com Vitest, sem serviço ou UI.
+- **Critérios de aceite:** `pnpm test -- tests/lib/normalizeCurrentWeather.test.ts` passa com asserts para temperatura 18 °C válida, campo aprovado ausente/inválido como indisponível, unidade inesperada rejeitada, temperatura ausente com outro campo válido preservado, nenhum campo utilizável conforme decisão T-02 e payload malformado sem valores inventados. Fixtures locais, sem API ou serviço real (FR-03; AC-03, AC-03b, AC-03c; NFR-06).
+- **Dependências:** T-02, T-08
+- **Arquivos prováveis:** `tests/lib/normalizeCurrentWeather.test.ts`
+- **Tipo:** Test
+
+### T-11
+- **Título:** Testar normalização de forecast
+- **Descrição curta:** Cobrir datas locais e respostas parciais com relógio/timezone controlados.
+- **Critérios de aceite:** `pnpm test -- tests/lib/normalizeForecast.test.ts` passa com relógio/timezone controlados: cinco datas locais consecutivas incluem hoje e não uma sexta; cruzar meia-noite usa o dia local aprovado; datas/campos ausentes ou inválidos não são inventados; menos de cinco é incompleto; nenhuma data válida é indisponível; payload malformado não vira previsão. Sem rede real (FR-04; AC-04, AC-04b; NFR-06).
+- **Dependências:** T-02, T-10
+- **Arquivos prováveis:** `tests/lib/normalizeForecast.test.ts`
+- **Tipo:** Test
+
+### T-13
+- **Título:** Testar conversão de temperatura
+- **Descrição curta:** Validar conversão e formatação em Vitest.
+- **Critérios de aceite:** `pnpm test -- tests/lib/temperature.test.ts` passa afirmando `0 °C = 32 °F`, `20 °C = 68 °F`, retorno aos valores Celsius originais e ausência de mutação; testa casas/arredondamento somente conforme decisão aprovada em T-02. Testes puros, sem chamadas de rede (FR-05; AC-05; NFR-06).
+- **Dependências:** T-02, T-12
+- **Arquivos prováveis:** `tests/lib/temperature.test.ts`
+- **Tipo:** Test
+
+### T-15
+- **Título:** Testar tabela de códigos WMO
+- **Descrição curta:** Cobrir mapeamentos e fallback com Vitest.
+- **Critérios de aceite:** `pnpm test -- tests/lib/weatherCode.test.ts` passa verificando cada mapeamento aprovado de código para rótulo/ícone e o comportamento aprovado para código desconhecido; não aceita conteúdo não presente na tabela T-02. Fixtures locais, sem API (FR-03, FR-04; AC-03b, AC-04b; NFR-06).
+- **Dependências:** T-02, T-14
+- **Arquivos prováveis:** `tests/lib/weatherCode.test.ts`
+- **Tipo:** Test
+
+### T-17
+- **Título:** Testar geocoding com fetch mockado
+- **Descrição curta:** Testar somente serviço, com Vitest e `fetch` mockado.
+- **Critérios de aceite:** `pnpm test -- tests/services/geocoding.test.ts` passa com `fetch` mockado: URL e parâmetros aprovados; `trim` apenas externo e Unicode/apóstrofo preservados; sucesso e zero resultados distintos; JSON inválido, rejeição de rede, HTTP 429, 5xx e outros não-2xx resultam em erro; input vazio tem zero chamadas. Nenhum teste acessa API ao vivo (FR-01, FR-02, FR-07; AC-01, AC-01b, AC-01c, AC-07a, AC-07c).
+- **Dependências:** T-01, T-04, T-16
+- **Arquivos prováveis:** `tests/services/geocoding.test.ts`
+- **Tipo:** Test
+
+### T-19
+- **Título:** Testar forecast com fetch mockado
+- **Descrição curta:** Testar somente serviço de forecast, sem rede real.
+- **Critérios de aceite:** `pnpm test -- tests/services/forecast.test.ts` passa com `fetch` mockado e relógio controlado: coordenadas/parâmetros aprovados; sucesso e payload parcial; JSON inválido, rede, HTTP 429, 5xx e outros não-2xx como erro; timeout e duração conforme T-02 somente se aprovados. Asserções cobrem status/resultado e nenhuma API ao vivo é acessada; mocks não servem como medição NFR (FR-03, FR-04, FR-07; AC-03b, AC-03c, AC-04b, AC-07b, AC-07d).
+- **Dependências:** T-01, T-02, T-04, T-18
+- **Arquivos prováveis:** `tests/services/forecast.test.ts`
+- **Tipo:** Test
+
+### T-21
+- **Título:** Testar hook, retry e concorrência
+- **Descrição curta:** Testar hook com Testing Library, promises e relógio controlados.
+- **Critérios de aceite:** `pnpm test -- tests/hooks/useWeather.test.ts` passa com serviços mockados, promises/relógio controlados: estados iniciais e loading/success/empty/error; input vazio e zero hits sem forecast; current válido com forecast falho e vice-versa; retry isolado; loading removido após término; resposta tardia A ignorada após B; 0/20 °C exibidos como 32/68 °F e retorno sem nova chamada; timeout somente no limite aprovado. Nenhum teste usa API ao vivo (FR-01, FR-03–FR-08; AC-01b, AC-03b, AC-03c, AC-04b, AC-05, AC-06b, AC-07a–AC-08; NFR-06).
+- **Dependências:** T-01, T-02, T-20
+- **Arquivos prováveis:** `tests/hooks/useWeather.test.ts`
+- **Tipo:** Test
 
 ### T-27
 - **Título:** Testar formulário de busca
@@ -242,16 +283,6 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Arquivos prováveis:** `tests/components/WeatherStates.test.tsx`
 - **Tipo:** Test
 
-## Entrega 5 — Clima, previsão, unidade e App
-
-### T-30
-- **Título:** Implementar clima atual
-- **Descrição curta:** Apresentar campos aprovados, indisponibilidade e WMO aprovado.
-- **Critérios de aceite:** Para a cidade vigente, exibe temperatura válida (fixture 18 °C como `18 °C`) e somente campos aprovados; campo ausente aparece `Indisponível`, sem valor inventado ou dado da cidade anterior. Temperatura ausente com outros campos válidos e ausência total seguem decisão T-02; testar em T-31 e bloquear escopo não aprovado (FR-03, FR-06; AC-03, AC-03b, AC-03c, AC-06; NFR-06).
-- **Dependências:** T-02, T-05, T-08, T-12, T-14, T-20
-- **Arquivos prováveis:** `src/components/CurrentWeather.tsx`
-- **Tipo:** UI
-
 ### T-31
 - **Título:** Testar clima atual
 - **Descrição curta:** Cobrir dados válidos, parciais e indisponíveis com Testing Library.
@@ -259,14 +290,6 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Dependências:** T-02, T-30
 - **Arquivos prováveis:** `tests/components/CurrentWeather.test.tsx`
 - **Tipo:** Test
-
-### T-32
-- **Título:** Implementar forecast
-- **Descrição curta:** Apresentar datas/campos aprovados e estados incompleto/indisponível.
-- **Critérios de aceite:** Para a cidade selecionada, mostra somente campos/granularidade aprovados e datas locais válidas recebidas, no máximo cinco começando por hoje; lacunas não são preenchidas; menos de cinco é `Previsão incompleta` e nenhuma data válida é `Previsão indisponível`. Fuso/fallback segue T-02; campo ou decisão pendente bloqueia a tarefa (FR-04; AC-04, AC-04b; NFR-06).
-- **Dependências:** T-02, T-05, T-10, T-12, T-14, T-20
-- **Arquivos prováveis:** `src/components/Forecast.tsx`
-- **Tipo:** UI
 
 ### T-33
 - **Título:** Testar forecast
@@ -276,14 +299,6 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Arquivos prováveis:** `tests/components/Forecast.test.tsx`
 - **Tipo:** Test
 
-### T-34
-- **Título:** Implementar controle de unidade
-- **Descrição curta:** Criar controle acessível que atualiza a unidade de apresentação.
-- **Critérios de aceite:** Controle acessível inicia em Celsius; ao alternar, valores canônicos 0/20 °C são apresentados como 32/68 °F e retornam a 0/20 °C sem nova chamada de geocoding/forecast. Campos e arredondamento seguem T-02; não presume persistência entre sessões nem valor pendente (FR-05; AC-05; NFR-03, NFR-06).
-- **Dependências:** T-02, T-12, T-20
-- **Arquivos prováveis:** `src/components/UnitToggle.tsx`
-- **Tipo:** UI
-
 ### T-35
 - **Título:** Testar controle de unidade
 - **Descrição curta:** Cobrir alternância e acessibilidade com Testing Library.
@@ -292,23 +307,15 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Arquivos prováveis:** `tests/components/UnitToggle.test.tsx`
 - **Tipo:** Test
 
-### T-36
-- **Título:** Compor experiência em App
-- **Descrição curta:** Integrar hook, busca, estados, clima, forecast e unidade sem chamadas de API na UI.
-- **Critérios de aceite:** `App` compõe busca, seleção explícita, estados, clima, previsão e unidade sem chamadas de API em componentes; com serviços controlados, seleciona cidade, não mostra A como atual após selecionar B e mantém uma seção válida de B quando a outra falha. Verificar integração em T-37; só contratos aprovados são usados (FR-01, FR-02, FR-03–FR-08; AC-02, AC-03b, AC-04b, AC-05, AC-06, AC-06b, AC-07b, AC-08; NFR-06).
-- **Dependências:** T-01, T-02, T-20, T-22, T-23, T-24, T-25, T-26, T-30, T-32, T-34
-- **Arquivos prováveis:** `src/App.tsx`
-- **Tipo:** UI
-
 ### T-37
 - **Título:** Testar integração em App
 - **Descrição curta:** Testar fluxo integrado com serviços controlados e Testing Library.
 - **Critérios de aceite:** `pnpm test -- tests/App.test.tsx` passa com serviços mockados cobrindo: input vazio sem busca; busca/sucesso e seleção contextual; loading até resposta; zero resultados sem forecast; mensagens distintas de erro e retry explícito; current/forecast parciais independentes; troca A→B ignora resposta tardia de A; unidade 0/20 °C→32/68 °F→Celsius sem nova consulta. Nenhum teste chama API ao vivo (FR-01–FR-08; AC-01b, AC-01c, AC-02, AC-03b, AC-04b, AC-05, AC-06, AC-06b, AC-07a, AC-07b, AC-07c, AC-08; NFR-03, NFR-06).
-- **Dependências:** T-01, T-02, T-36
+- **Dependências:** T-01, T-02, T-21, T-27, T-28, T-29, T-31, T-33, T-35, T-36
 - **Arquivos prováveis:** `tests/App.test.tsx`
 - **Tipo:** Test
 
-## Entrega 6 — E2E responsivo
+## Entrega 8 — E2E responsivo
 
 ### T-38
 - **Título:** Testar E2E desktop/tablet
@@ -326,7 +333,7 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Arquivos prováveis:** `tests/e2e/weather-mobile.spec.ts`
 - **Tipo:** Test
 
-## Entrega 7 — Hardening e medições
+## Entrega 9 — Hardening e medições
 
 ### T-40
 - **Título:** Revisar acessibilidade manualmente
@@ -376,6 +383,5 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 - **Arquivos prováveis:** `tests/quality/availability-results.md`
 - **Tipo:** Test
 
-## Notas
 ## Bloqueios finais
 Tarefas dependentes não podem assumir valores provisórios: decisões de busca (count, idioma, acentos e contexto), campos/granularidade, fallback de timezone, timeout, freshness, conversão/arredondamento/persistência, tabela WMO, matriz de navegadores e métodos/limiares NFR exigem escolha aprovada com aprovador e fonte no artefato indicado; sem isso, a tarefa correspondente fica `Bloqueada`. Medições de usabilidade, performance e disponibilidade só concluem com participantes ou evidência operacional no ambiente e método aprovados. Mantêm-se fora de escopo autenticação, persistência no servidor, GPS, offline/cache, app nativo, alertas, favoritos, histórico, compartilhamento, notificações e deploy.
