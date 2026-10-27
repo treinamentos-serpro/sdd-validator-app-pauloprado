@@ -267,13 +267,14 @@ Todos os testes usam fixtures de payloads Open-Meteo e relógio controlado; nenh
 
 | Camada | Cobertura prevista | ACs / NFRs |
 | --- | --- | --- |
-| Unit (funções puras) | Aparar espaços externos preservando Unicode (incluindo `São João d'Aliança`); validar payloads; mapear campos ausentes; datas no timezone da cidade; exibir `Indisponível`; conversão Celsius/Fahrenheit e retorno à unidade original sem arredondar o domínio. | AC-01b, AC-01c, AC-03b, AC-03c, AC-04, AC-04b, AC-05; NFR-06 |
-| Service | URL/query e parâmetros; mapeamento City/current/forecast; respostas válidas, vazias, parciais e inválidas; rede, 429 e 5xx; chamadas condicionais: input vazio não chama geocoding e zero hits não chama forecast. | AC-01, AC-01b, AC-02, AC-07a, AC-07c; NFR-04, NFR-08 |
-| Component (Testing Library) | Acessibilidade/ações principais; resultados com contexto de região/país; loading, vazio, erro, retry; seção parcial, unidade default e troca de unidade sem novas chamadas. | AC-01–AC-08; NFR-03 |
-| Integração do hook | Seleção de cidade, estados independentes current/forecast, troca de unidade, retry e race condition: A pendente, seleção/resposta B, resposta tardia A ignorada; timeout e resposta posterior ignorada. | AC-05, AC-06, AC-06b, AC-07b–AC-08; NFR-06 |
-| E2E (Playwright) | Fluxo buscar, desambiguar, selecionar, conferir clima/previsão e trocar unidade; mensagens literais, carregamento e falhas com respostas interceptadas; viewport conforme matriz prioritária aprovada. | AC-01–AC-08; NFR-01, NFR-02, NFR-03, NFR-07 |
+| Vitest — funções puras | Aparar espaços externos preservando Unicode; converter C→F→C sem mutar o valor canônico; preservar `null`; mapear respostas válidas/parciais; converter `is_day`; gerar cinco datas no timezone de teste; rejeitar payloads malformados. | AC-01b, AC-01c, AC-03b, AC-03c, AC-04, AC-04b, AC-05; NFR-06 |
+| Vitest — services com `fetch` mockado | Verificar URL, query params e mapeamentos; sucesso geocoding/forecast; zero hits; HTTP 429/5xx; outros não-2xx; falha de rede, JSON inválido, timeout e payload parcial. Garantir que busca vazia não chama geocoding e zero hits não chama forecast. | AC-01, AC-01b, AC-02, AC-03b, AC-04b, AC-07a–AC-07d; NFR-04, NFR-08 |
+| Vitest + Testing Library — componentes | Renderizar e interagir com `CitySearch`, resultados, unidades, clima e previsão. Cobrir estado inicial/idle, loading, success, empty e error; retry; mensagens literais; `Indisponível`; previsão incompleta; teclado e nomes acessíveis. Trocar unidade não pode provocar nova chamada. | AC-01–AC-08; NFR-02, NFR-03 |
+| Vitest — integração do hook | Transições entre estados; current e forecast independentes; seleção de cidade; retry apenas da operação falha; timeout; corrida A/B em que resposta tardia de A não substitui B; alternância de unidade sem nova chamada. Usar promises controladas e relógio falso. | AC-05, AC-06, AC-06b, AC-07b–AC-08; NFR-06 |
+| Playwright — E2E desktop | Fluxo completo busca → seleciona cidade → consulta clima e cinco datas → alterna unidade; também input vazio, zero hits, erros, retry e loading. Interceptar todas as rotas Open-Meteo com fixtures; não acessar API real. | AC-01–AC-08; NFR-02, NFR-03, NFR-07 |
+| Playwright — E2E mobile | Repetir o fluxo principal em viewports móveis propostos de 320 px e 375 px; verificar controles alcançáveis, conteúdo sem sobreposição/rolagem horizontal e fluxo de erro. Confirmar dispositivos e viewports finais com a matriz de compatibilidade. | AC-01–AC-08; NFR-01, NFR-03, NFR-07 |
 
-Fixar a data do relógio e verificar exatamente cinco datas locais, sem sexta data. A medição de p95 do NFR-04 exige ambiente, perfil de rede/dispositivo e tratamento da latência externa acordados; testes determinísticos com mocks não demonstram por si só desempenho real do provedor. NFR-02, NFR-03, NFR-05 e NFR-07 também precisam dos métodos/limites ainda pendentes na spec.
+Fixar a data do relógio e o timezone da cidade para verificar exatamente cinco datas locais, sem sexta data. Testes com mocks validam lógica e UI, mas não demonstram desempenho nem disponibilidade reais do provedor; medir NFR-04/NFR-05 em ambiente e perfil de rede acordados, separadamente da suíte determinística. A matriz de viewports/navegadores e a aprovação de metas continuam pendentes na spec.
 
 ## Risks & Trade-offs
 
@@ -287,6 +288,18 @@ Fixar a data do relógio e verificar exatamente cinco datas locais, sem sexta da
 - **Metas não aprovadas:** NFR-01 a NFR-08 incluem metas iniciais a validar (dispositivos, usabilidade, WCAG, performance, disponibilidade, atualidade, navegadores e requisitos corporativos). Registrar método e responsável antes de declarar conformidade.
 - **Questões de consistência na spec:** (1) AC-07d fixa 8s enquanto Open Questions solicita confirmação; resolução proposta: aprovação explícita do timeout sem editar a spec neste plano. (2) AC-03c exige temperatura `Indisponível` e mantém outros campos válidos, enquanto Edge Cases adiciona `Dados atuais indisponíveis` se nenhum campo atual for válido; resolução proposta: manter a temperatura como `Indisponível` em ambos os casos e usar a mensagem de seção somente quando nenhum campo puder ser apresentado. Validar o texto/condição com produto.
 - **Escopo fechado:** não reabrir autenticação, persistência no servidor, GPS/localização automática, offline/cache, app nativo, alertas, favorites, history, share ou notifications. Qualquer inclusão exige mudança aprovada de escopo e revisão de privacidade/segurança; não faz parte deste plano.
+
+### Trade-offs técnicos
+
+| Decisão do plano | Alternativa considerada | Trade-off |
+| --- | --- | --- |
+| Estado local em hooks React | Redux ou TanStack Query | Menos dependências e conceitos para o MVP; exige implementar manualmente estados de requisição, retry e proteção contra respostas fora de ordem. |
+| Celsius como unidade canônica; conversão derivada na renderização | Solicitar novamente à API ao trocar unidade ou armazenar valores em unidades mistas | Evita rede e divergência entre current/forecast; exige definir precisão de exibição e incluir cada novo campo de temperatura na conversão. |
+| Sem backend, autenticação ou persistência | Serviço próprio com contas e dados salvos | Menor custo e superfície de privacidade; sem histórico, favoritos ou sincronização entre dispositivos no MVP. |
+| Sem cache/offline; retry explícito | Cache stale-while-revalidate, retry automático ou suporte offline | Evita apresentar previsão antiga como atual e simplifica estados; durante falhas de rede, a pessoa não recebe dados previamente carregados. |
+| Serviços Open-Meteo separados dos componentes, com normalizadores puros | Chamada `fetch` direta nos componentes ou acesso ao payload externo em toda a UI | Facilita mock, testes e eventual troca do provedor; requer mapeamento explícito entre DTO externo e modelo de domínio. |
+| Forecast diário como proposta inicial | Forecast horário | Modelo e interface mais simples para cinco datas; horário dá mais detalhe, mas aumenta volume, decisões de fuso e complexidade de apresentação/teste. A granularidade final continua pendente. |
+| Vitest com fixtures e Playwright interceptando a rede | Testes E2E dependentes da API ao vivo | Execução determinística, rápida e sem limites externos; não detecta sozinho mudanças reais do contrato do provedor nem comprova latência/disponibilidade. |
 
 | Decisão/contrato | IDs rastreados |
 | --- | --- |
