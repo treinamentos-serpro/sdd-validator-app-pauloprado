@@ -19,21 +19,55 @@ O objetivo é permitir que a pessoa usuária encontre informações meteorológi
 
 As personas abaixo são hipóteses baseadas em usos comuns de um aplicativo de clima; não representam pesquisa confirmada e devem ser validadas com o público-alvo.
 
-- **US-01 — Pessoa que se desloca diariamente:** Como pessoa que se desloca diariamente (hipótese de persona), quero buscar uma cidade e consultar seu clima atual e sua previsão para planejar roupa, trajeto e itens necessários.
-- **US-02 — Profissional que trabalha ao ar livre:** Como profissional que trabalha ao ar livre (hipótese de persona), quero selecionar a cidade de trabalho e consultar o clima atual e a previsão para decidir se preciso ajustar minha rotina ou meus equipamentos.
-- **US-03 — Pessoa planejando uma viagem:** Como pessoa planejando uma viagem (hipótese de persona), quero buscar e selecionar a cidade do destino e consultar o clima atual e a previsão para planejar o que levar.
-- **US-04 — Pessoa usuária que prefere outra unidade:** Como pessoa usuária que prefere outra unidade de temperatura, quero alternar entre Celsius e Fahrenheit para interpretar os valores na unidade que prefiro.
+- **US-01 (FR-01):** Como pessoa que se desloca diariamente, quero buscar uma cidade pelo nome para consultar o tempo do local onde estarei.
+- **US-02 (FR-02):** Como pessoa planejando uma viagem, quero selecionar a cidade correta entre os resultados da busca para confirmar a previsão do meu destino.
+- **US-03 (FR-03):** Como profissional que trabalha ao ar livre, quero consultar o clima atual da cidade de trabalho para preparar minha rotina e meus equipamentos.
+- **US-04 (FR-04):** Como pessoa planejando uma viagem, quero consultar a previsão de hoje e dos quatro dias seguintes para decidir o que levar.
+- **US-05 (FR-05):** Como pessoa que se desloca diariamente, quero alternar entre Celsius e Fahrenheit para interpretar a temperatura na unidade que prefiro.
+- **US-06 (FR-06):** Como pessoa planejando uma viagem, quero selecionar outra cidade e ver os dados atualizados para planejar atividades no destino correto.
+- **US-07 (FR-07):** Como pessoa que se desloca diariamente, quero receber uma mensagem quando a busca ou consulta falhar para saber que não posso confiar em dados indisponíveis.
+- **US-08 (FR-08):** Como profissional que trabalha ao ar livre, quero ver quando uma busca ou atualização está em andamento para saber que o app está processando minha consulta.
 
 ## Acceptance Criteria
 
-- **AC-01 (US-01, US-02, US-03; FR-01):** ao enviar o nome de uma cidade em uma busca, a aplicação apresenta resultados de cidades correspondentes ou informa que nenhum resultado foi encontrado. Os formatos de entrada aceitos permanecem sujeitos à decisão registrada em Open Questions.
-- **AC-02 (US-01, US-02, US-03; FR-02):** quando a busca apresentar mais de uma cidade, cada resultado pode ser selecionado; após a seleção, a cidade escolhida fica identificada como a cidade consultada. A informação contextual usada para distinguir homônimos permanece sujeita à decisão registrada em Open Questions.
-- **AC-03 (US-01, US-02, US-03; FR-03):** para uma cidade selecionada com dados atuais disponíveis, a aplicação apresenta dados identificáveis como clima atual e associados àquela cidade. Os campos meteorológicos específicos permanecem sujeitos à decisão registrada em Open Questions.
-- **AC-04 (US-01, US-02, US-03; FR-04):** para uma cidade selecionada com previsão disponível, a aplicação apresenta um período que inclui hoje e os quatro dias seguintes, totalizando cinco datas do calendário conforme a definição de fuso horário a ser decidida. A granularidade e os campos de cada período permanecem sujeitos à decisão registrada em Open Questions.
-- **AC-05 (US-04; FR-05):** na primeira consulta, os valores de temperatura são apresentados em Celsius. Após solicitar Fahrenheit, os valores de temperatura apresentados passam a usar Fahrenheit; ao solicitar Celsius, passam a usar Celsius. A conversão deve corresponder à unidade selecionada em todos os campos de temperatura que vierem a ser definidos. A forma de arredondamento e o escopo exato dos campos permanecem sujeitos à decisão registrada em Open Questions.
-- **AC-06 (US-01, US-02, US-03; FR-06):** depois de selecionar outra cidade, a identificação da cidade e os dados meteorológicos apresentados correspondem à nova seleção, e não à cidade anteriormente consultada.
-- **AC-07 (US-01, US-02, US-03; FR-07):** se a busca não encontrar cidades, a aplicação informa que não houve resultado; se a obtenção dos dados meteorológicos falhar, informa que os dados não puderam ser obtidos. Nenhum dado indisponível deve ser apresentado como uma resposta atual bem-sucedida.
-- **AC-08 (US-01, US-02, US-03; FR-08):** durante uma busca e durante a obtenção ou atualização de dados meteorológicos, a aplicação exibe uma indicação de carregamento até a operação terminar ou falhar.
+Para automação, os cenários usam respostas controladas do Open-Meteo e um relógio fixo. Nenhum critério depende de uma chamada à API real.
+
+- **AC-01 (US-01; FR-01)**
+	- **Given** uma busca por uma cidade e uma resposta de geocodificação contendo essa cidade
+	- **When** a pessoa usuária envia a busca
+	- **Then** a cidade retornada aparece entre os resultados exibidos.
+- **AC-02 (US-02; FR-02)**
+	- **Given** dois resultados de cidade distintos exibidos para uma busca
+	- **When** a pessoa usuária seleciona o segundo resultado
+	- **Then** o segundo resultado passa a ser a cidade selecionada para a consulta.
+- **AC-03 (US-03; FR-03)**
+	- **Given** uma cidade selecionada e uma resposta de clima atual contendo temperatura de 18 °C
+	- **When** os dados atuais são apresentados
+	- **Then** a temperatura atual exibida para essa cidade é 18 °C.
+- **AC-04 (US-04; FR-04)**
+	- **Given** o relógio de teste fixado em uma data e uma resposta de previsão para essa data e os quatro dias consecutivos seguintes
+	- **When** a previsão é apresentada para uma cidade selecionada
+	- **Then** a interface apresenta dados para as cinco datas retornadas, incluindo a data atual fixada e sem incluir uma sexta data.
+- **AC-05 (US-05; FR-05)**
+	- **Given** temperaturas disponíveis de 0 °C e 20 °C
+	- **When** a consulta inicial é apresentada e, em seguida, a pessoa usuária seleciona Fahrenheit
+	- **Then** a unidade inicial é Celsius e os valores passam a ser exibidos como 32 °F e 68 °F, respectivamente.
+- **AC-06 (US-06; FR-06)**
+	- **Given** uma cidade A exibida e uma cidade B selecionável, com respostas controladas distintas para ambas
+	- **When** a pessoa usuária seleciona a cidade B
+	- **Then** a identificação, o clima atual e a previsão exibidos correspondem à cidade B, e nenhum dado da cidade A permanece apresentado como dado atual.
+- **AC-07a (US-07; FR-07)**
+	- **Given** uma busca cuja resposta de geocodificação não contém resultados
+	- **When** a busca termina
+	- **Then** a interface apresenta uma mensagem indicando que nenhuma cidade foi encontrada.
+- **AC-07b (US-07; FR-07)**
+	- **Given** uma cidade selecionada e uma resposta de falha ao solicitar dados meteorológicos
+	- **When** a consulta termina com erro
+	- **Then** a interface informa que não foi possível obter os dados e não apresenta dados indisponíveis como atuais.
+- **AC-08 (US-08; FR-08)**
+	- **Given** uma busca ou atualização cuja resposta controlada permanece pendente
+	- **When** a operação é iniciada
+	- **Then** a interface apresenta uma indicação de carregamento até a resposta ser concluída ou falhar e a remove quando a operação termina.
 
 ## Non-Functional Requirements
 
