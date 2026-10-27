@@ -165,12 +165,69 @@ interface WeatherViewState {
 
 ### Contratos técnicos propostos, sujeitos à aprovação
 
-| Operação | Endpoint e parâmetros essenciais propostos | Retorno/mapeamento |
-| --- | --- | --- |
-| Geocoding | `https://geocoding-api.open-meteo.com/v1/search`; `name` recebe o nome aparado e codificado como query; `count`, `language` e `format=json` são configuração proposta, não requisitos confirmados. | `results[]` mapeia `id`, `name`, `latitude`, `longitude`, `country`, `country_code`, `admin1` e `timezone`, quando presentes, para `City`. Resultados ausentes/null normalizam para lista vazia; payload malformado é erro. |
-| Forecast | `https://api.open-meteo.com/v1/forecast`; `latitude`, `longitude`, `timezone=<timezone da cidade>`, `temperature_unit=celsius` e `forecast_days=5`. Proposta diária: `current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,wind_speed_10m,weather_code,is_day`; `daily=temperature_2m_min,temperature_2m_max,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,weather_code`; `wind_speed_unit=kmh`. Campos e granularidade são propostas, não requisitos aprovados. | `current.temperature_2m` mapeia para `temperatureC`; demais variáveis current e daily mapeiam aos campos homônimos normalizados de `CurrentWeather`/`ForecastDay`. `current.is_day` (0/1) é normalizado para boolean; `time` e `daily.time[]` definem horário/data local. Unidades devem ser verificadas pela resposta `current_units`/`daily_units`; ausências escolhidas viram `null`, datas sem previsão são omitidas e não inventadas. |
+### Geocoding
 
-- Configurar explicitamente timezone local da cidade e Celsius é proposta técnica para cumprir FR-04 e preservar Celsius no domínio. Usar `timezone=auto` como fallback, ou rejeitar uma cidade sem timezone, ainda precisa de decisão; não inferir timezone pelo dispositivo.
+- **URL:** `https://geocoding-api.open-meteo.com/v1/search`
+- **Parâmetros:** `name` é obrigatório e recebe a cidade após `trim` e codificação de URL. `count=10`, `language=pt` e `format=json` são valores propostos; quantidade e idioma ainda não foram aprovados. Não enviar requisição para input vazio.
+- **Exemplo resumido de resposta:**
+
+```json
+{
+  "results": [
+    {
+      "id": 3448439,
+      "name": "São Paulo",
+      "latitude": -23.5475,
+      "longitude": -46.6361,
+      "country": "Brazil",
+      "country_code": "BR",
+      "admin1": "São Paulo",
+      "timezone": "America/Sao_Paulo"
+    }
+  ]
+}
+```
+
+- **Mapeamento para `City`:** `id` → `id`; `name` → `name`; `latitude`/`longitude` → coordenadas; `country` → `country`; `country_code` → `countryCode`; `admin1` → `admin1`; `timezone` → `timezone`. Campos de contexto ausentes permanecem opcionais. Resposta válida sem resultados (`results` vazio ou ausente) vira estado `empty`; JSON malformado ou falha HTTP é erro de geocodificação, não busca vazia.
+
+### Forecast
+
+- **URL:** `https://api.open-meteo.com/v1/forecast`
+- **Parâmetros comuns:** `latitude` e `longitude` vêm do `City` selecionado; `timezone` usa o fuso IANA retornado pelo geocoding; `temperature_unit=celsius`; `wind_speed_unit=kmh`; `forecast_days=5`.
+- **`current` proposto:** `temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,wind_speed_10m,weather_code,is_day`.
+- **`daily` proposto:** `temperature_2m_min,temperature_2m_max,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,weather_code`. `daily` é a proposta mais simples para `ForecastDay`; se a spec aprovar previsão horária, os parâmetros e o modelo deverão ser revistos.
+- **Exemplo resumido de resposta:** o trecho mostra duas posições para abreviar; a chamada com `forecast_days=5` deve retornar cinco posições em cada série diária.
+
+```json
+{
+  "timezone": "America/Sao_Paulo",
+  "current": {
+    "time": "2026-10-27T09:00",
+    "temperature_2m": 18.4,
+    "apparent_temperature": 19.1,
+    "relative_humidity_2m": 68,
+    "precipitation": 0.0,
+    "wind_speed_10m": 12.3,
+    "weather_code": 1,
+    "is_day": 1
+  },
+  "daily": {
+    "time": ["2026-10-27", "2026-10-28"],
+    "temperature_2m_min": [16.2, 17.0],
+    "temperature_2m_max": [24.5, 25.1],
+    "precipitation_probability_max": [10, 20],
+    "precipitation_sum": [0.0, 1.2],
+    "wind_speed_10m_max": [18.0, 20.5],
+    "weather_code": [1, 3]
+  }
+}
+```
+
+- **Mapeamento para `CurrentWeather`:** `current.time` → `time`; `temperature_2m` → `temperatureC`; `apparent_temperature` → `apparentTemperatureC`; `relative_humidity_2m` → `relativeHumidityPct`; `precipitation` → `precipitationMm`; `wind_speed_10m` → `windSpeedKmh`; `weather_code` → `weatherCode`; `is_day` (0/1) → `isDay` (boolean).
+- **Mapeamento para `ForecastDay`:** para cada índice `i`, `daily.time[i]` → `date`; `temperature_2m_min[i]` → `temperatureMinC`; `temperature_2m_max[i]` → `temperatureMaxC`; `precipitation_probability_max[i]` → `precipitationProbabilityMaxPct`; `precipitation_sum[i]` → `precipitationSumMm`; `wind_speed_10m_max[i]` → `windSpeedMaxKmh`; `weather_code[i]` → `weatherCode`.
+- **Composição de `WeatherData`:** agregar o `City` selecionado, o objeto normalizado `CurrentWeather`, os `ForecastDay[]` válidos e `retrievedAt` gerado pelo cliente no instante da obtenção. `Unit` é preferência de apresentação e não altera as temperaturas Celsius armazenadas.
+- Verificar `current_units` e `daily_units` da resposta para validar unidades. Variável escolhida ausente/inválida vira `null`; data sem previsão não é inventada. Configurar explicitamente timezone local da cidade e Celsius é proposta técnica; fallback de timezone ausente ainda precisa de decisão.
+
 - `forecast_days=5` é a configuração proposta para as cinco datas exigidas; os limites e a forma de representar datas devem ser conferidos contra o contrato vigente do endpoint antes da implementação.
 - A lista de campos da linha Forecast é uma proposta inicial coerente com os contratos apresentados. Aprovar ou ajustar campos e granularidade (`daily` ou `hourly`) antes da implementação; se forem escolhidos dados horários, revisar `ForecastDay` para representar períodos horários. `count`, idioma de geocoding e política de correspondência sem acentos também permanecem pendentes.
 - Os serviços devem codificar a query preservando caracteres Unicode, verificar status HTTP e tratar resposta como não confiável até normalização. Não se presume precisão, disponibilidade ou garantia de dados do provedor.
