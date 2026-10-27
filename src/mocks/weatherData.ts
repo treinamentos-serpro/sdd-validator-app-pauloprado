@@ -17,6 +17,7 @@ export const mockWeatherData: WeatherData = {
     apparentTemperatureC: 19.1,
     relativeHumidityPct: 68,
     precipitationMm: 0,
+    pressureHpa: 1013.2,
     windSpeedKmh: 12.3,
     weatherCode: 1,
     isDay: true,

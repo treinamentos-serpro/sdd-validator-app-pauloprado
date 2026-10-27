@@ -17,6 +17,7 @@ export interface CurrentWeather {
   apparentTemperatureC: number | null;
   relativeHumidityPct: number | null;
   precipitationMm: number | null;
+  pressureHpa: number | null;
   windSpeedKmh: number | null;
   weatherCode: number | null;
   isDay: boolean | null;
