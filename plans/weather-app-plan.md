@@ -235,12 +235,12 @@ interface WeatherViewState {
 
 ## State Management
 
-- Usar estado local React, concentrado no hook de orquestração da tela; componentes recebem estado e callbacks. Sem Redux, TanStack Query, storage de browser, estado global persistente ou persistência de servidor.
-- Modelar busca (`CitySearchState`), clima atual e previsão com estados discriminados `idle/loading/success/error`; busca sem hits é estado `empty`. Estados atuais e forecast não se sobrescrevem mutuamente.
-- Unidade começa em Celsius e vive na sessão da tela. A persistência da preferência não é requisito aprovado.
-- Associar cada operação a uma identidade crescente de consulta/seleção. Antes de publicar resultado, verificar se ainda corresponde à identidade vigente; descartar respostas tardias. Cancelamento da requisição via `AbortController` é opção técnica complementar, não substitui a checagem de identidade.
-- Retry explícito pelo usuário, limitado à operação falha e aos parâmetros da consulta corrente. Sem retry automático ou cache no MVP.
-- Ao selecionar outra cidade, limpar/invalidar os dados anteriores como atuais e associar novos estados à cidade selecionada. Se apenas current ou forecast falhar, preservar a seção independente que teve sucesso para a cidade atual.
+- **Localização do estado:** o texto editável da busca vive no componente `CitySearch`. `useWeather` é fonte única de estado para resultados da busca, cidade selecionada, estados/erros de current e forecast e unidade atual. Componentes recebem dados e callbacks; não mantêm cópias divergentes dos dados meteorológicos. Não há estado global, storage de browser ou persistência no servidor.
+- **Estados explícitos:** `CitySearchState` usa `idle`, `loading`, `success`, `empty` e `error`; `empty` significa somente geocoding bem-sucedido sem resultados. `ResourceState<T>` para clima atual e previsão usa `idle`, `loading`, `success` e `error`. Em `success`, campos `null` representam dados parciais; datas válidas da previsão são preservadas, e a UI deriva o rótulo de incompletude. Se não existir nenhum dado utilizável para uma seção, ela termina em `error` com `weather-unavailable`.
+- **Unidade e conversão:** `unit` começa em `celsius` e vive somente na sessão da tela. Current e forecast mantêm temperaturas em Celsius. Na renderização, converter cada campo de temperatura aprovado usando $F = C \times 9/5 + 32$ quando `unit === "fahrenheit"`; exibir °C caso contrário. A troca da unidade atualiza somente a apresentação, sem chamar geocoding ou forecast e sem alterar os valores armazenados. A regra de arredondamento depende da decisão de produto.
+- **Concorrência:** associar cada operação a uma identidade crescente de busca/seleção. Antes de publicar resultado ou erro, verificar se corresponde à identidade vigente e ignorar respostas tardias. `AbortController` pode cancelar trabalho desnecessário, mas não substitui essa verificação.
+- **Retry:** ação explícita do usuário, limitada à operação que falhou e aos parâmetros correntes. Sem retry automático, cache ou persistência no MVP.
+- **Troca de cidade:** ao selecionar outra cidade, associar novo estado à seleção imediatamente e não manter dados da anterior como atuais. Se current ou forecast falhar, preservar somente a seção independente que terminou com sucesso para a cidade atual.
 
 ## Error Handling
 
@@ -248,15 +248,16 @@ interface WeatherViewState {
 | --- | --- | --- |
 | Campo vazio ou só espaços | Não requisitar, não iniciar loading; exibir `Informe uma cidade para buscar`. | AC-01b |
 | Geocoding conclui sem resultados | Estado vazio, sem chamada meteorológica; exibir `Nenhuma cidade encontrada`. Não é erro do serviço. | AC-07a |
-| Falha de rede, HTTP 429 ou 5xx em geocoding | Finalizar loading; exibir `Falha na busca` e ação `Tentar novamente`. Diferenciar de zero resultados. | AC-07c |
-| Falha ao obter dados meteorológicos | Finalizar loading; exibir `Não foi possível obter os dados` e `Tentar novamente`; não exibir dados anteriores como atuais. | AC-07b |
-| Requisição pendente além do timeout | Finalizar loading; exibir `A consulta demorou demais` e `Tentar novamente`; descartar conclusão tardia. Limite de 8 segundos é provisório e carece de confirmação, apesar de constar literalmente em AC-07d. | AC-07d; questão aberta na spec |
+| Falha de rede em qualquer endpoint | Finalizar o loading daquela operação; geocoding exibe `Falha na busca`, forecast/current exibe `Não foi possível obter os dados`; oferecer `Tentar novamente`. | AC-07b, AC-07c |
+| HTTP 429 (limite do provedor) | Classificar como `rate-limited`, finalizar loading e exibir a mensagem correspondente ao endpoint; permitir retry explícito, sem retry automático. | AC-07b, AC-07c |
+| HTTP diferente de 2xx, incluindo 4xx/5xx, ou payload/JSON inválido | Classificar como erro HTTP ou `invalid-payload`, não como busca vazia; finalizar loading, usar mensagem correspondente ao endpoint e oferecer retry. | AC-07b, AC-07c |
+| Requisição pendente por 8 segundos | Abortar a requisição, finalizar loading, exibir `A consulta demorou demais`, oferecer `Tentar novamente` e ignorar eventual resposta tardia. Os 8 segundos continuam provisórios até confirmação na spec. | AC-07d; questão aberta na spec |
 | Forecast com menos de cinco datas válidas | Exibir somente datas recebidas e `Previsão incompleta`; sem data válida, `Previsão indisponível`. Não inventar datas/valores. | AC-04b |
-| Campo meteorológico ausente/inválido | Mostrar `Indisponível` para o campo, preservando outros campos válidos e sem reutilizar valor antigo. | AC-03b, AC-03c |
-| Payload inválido ou parcial | Validar em normalizador; classificar estrutura inutilizável como erro, campos ausentes como dados parciais. Estado de current é independente do forecast. | AC-03b, AC-03c, AC-04b, AC-07b |
+| Campo meteorológico individual ausente/inválido | Normalizar o campo selecionado para `null`, exibir `Indisponível` nele e preservar os demais campos válidos; não reutilizar valores anteriores. | AC-03b, AC-03c |
+| Resposta parcial | Manter a seção em sucesso parcial se houver dado utilizável: current exige ao menos um campo válido; forecast mostra datas válidas e `Previsão incompleta`. Sem dados utilizáveis, terminar a seção em `weather-unavailable`. Current e forecast têm estados independentes. | AC-03b, AC-03c, AC-04b |
 | Resposta de cidade anterior chega depois da seleção atual | Ignorar resposta; não atualizar identificação nem seções da cidade vigente. | AC-06b |
 
-Mensagens adicionais definidas em Edge Cases, não como texto de critério de aceite: `Dados atuais indisponíveis` quando nenhum campo atual aproveitável existir. Zero geocoding hits nunca deve produzir mensagem de falha. Para erros HTTP, separar 429; outros status e 5xx permanecem `http`/falha e não são descritos como erro de rede.
+`empty` é um resultado válido somente para geocoding sem hits; falhas de transporte, status HTTP não bem-sucedido e payload inválido permanecem estados `error`. Mensagens de UI são distintas por operação e não devem revelar detalhes internos da resposta externa. Não há retry automático.
 
 **Ponto de consistência a resolver:** AC-07d exige timeout aos 8 segundos, enquanto a seção Open Questions o chama de provisório e pede confirmação entre 5, 8 ou 10 segundos. Implementação deve aguardar decisão de produto ou tratar 8 segundos como requisito provisório explicitamente aceito; este plano não altera o critério.
 
