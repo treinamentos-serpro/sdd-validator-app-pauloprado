@@ -4,7 +4,37 @@
 
 A empresa solicitou uma aplicação para que usuários consultem informações meteorológicas de cidades. A experiência deve apresentar o clima atual e uma previsão para os próximos cinco dias, permitir alternância entre Celsius e Fahrenheit e funcionar em dispositivos móveis.
 
-O briefing ainda não define a fonte dos dados, como as cidades serão selecionadas, nem os detalhes das informações meteorológicas exibidas. Esses pontos precisam ser esclarecidos antes da especificação e do planejamento técnico.
+As decisões iniciais sobre fonte de dados, período da previsão, unidade padrão, autenticação e idioma da interface estão registradas abaixo. Permanecem em aberto detalhes como critérios de busca, campos meteorológicos, fuso horário e frequência de atualização.
+
+## Decisões
+
+1. **Fonte de dados: Open-Meteo, sem API key.** Essa escolha simplifica a integração inicial e evita a necessidade de provisionar uma chave de API. Resolve a escolha inicial do provedor; ainda é necessário confirmar cobertura, termos de uso, limites e disponibilidade.
+2. **Período da previsão: hoje mais os quatro dias seguintes.** Essa definição deixa explícito que o período de cinco dias inclui o dia atual. Resolve a dúvida entre “hoje + quatro dias” e os cinco dias seguintes; a granularidade diária ou intradiária e o fuso usado para definir “hoje” continuam em aberto.
+3. **Unidade padrão: Celsius.** A unidade inicial será explícita, evitando ambiguidade na primeira consulta. Resolve qual unidade exibir por padrão; persistência da escolha após alternância e conversão de todos os campos de temperatura ainda precisam ser especificadas.
+4. **Sem autenticação e sem persistência no servidor.** O escopo inicial não terá contas nem armazenamento de dados do usuário no servidor, reduzindo complexidade e coleta de dados. Resolve a necessidade de login e persistência de servidor; armazenamento local no navegador, como cidade recente ou preferência de unidade, permanece em aberto.
+5. **Idioma da interface: pt-BR.** A interface será apresentada em português do Brasil, mantendo consistência linguística para o público inicial. Resolve o idioma da UI; convenções de data, hora e fuso horário ainda precisam ser definidas.
+
+## Personas (hipóteses para validação)
+
+As personas abaixo são hipóteses baseadas nos usos comuns de um app de clima; devem ser validadas com pesquisa junto ao público-alvo.
+
+### Pessoa que se desloca diariamente
+
+- **Objetivo principal:** saber como estará o tempo ao sair e nos próximos dias para planejar roupa, trajeto e itens como guarda-chuva.
+- **Contexto de uso:** principalmente no celular, em consultas rápidas antes de sair; pode usar desktop durante o planejamento do dia.
+- **Métrica de sucesso percebida:** consegue identificar em até 30 segundos a condição atual e se precisará se preparar para chuva ou variação de temperatura.
+
+### Profissional que trabalha ao ar livre
+
+- **Objetivo principal:** consultar as condições da cidade de trabalho e antecipar se o clima pode exigir ajustes na rotina ou nos equipamentos.
+- **Contexto de uso:** principalmente no celular, em campo e possivelmente sob condições de conectividade limitada; usa a previsão de cinco dias para planejar a agenda.
+- **Métrica de sucesso percebida:** consegue encontrar a previsão da localidade correta e decidir se precisa ajustar o plano de trabalho sem recorrer a outra fonte.
+
+### Pessoa planejando uma viagem
+
+- **Objetivo principal:** consultar o clima atual e a previsão do destino para escolher datas, roupas e itens para levar.
+- **Contexto de uso:** desktop durante o planejamento e celular durante a viagem; pesquisa cidades diferentes da localização atual.
+- **Métrica de sucesso percebida:** consegue confirmar que está vendo a previsão do destino correto e decidir o que levar com base nos próximos cinco dias.
 
 ## Requisitos Funcionais
 
@@ -37,10 +67,10 @@ As classificações abaixo são estimativas iniciais, baseadas no briefing dispo
 | Produto | Público, necessidade e critérios de sucesso não estão definidos; o app pode resolver o problema errado ou não gerar adoção. | Média | Alto: esforço investido em uma experiência que não atende às necessidades prioritárias. | Validar público e casos de uso com usuários; definir métricas de sucesso e critérios de aceite antes de fechar o MVP. |
 | Produto | “Clima atual” e “previsão de cinco dias” têm escopo ambíguo. | Alta | Alto: retrabalho em UX e integração, além de divergência sobre o que significa entregar o produto. | Decidir quais dados serão exibidos e se a previsão será diária ou intradiária; registrar exemplos e critérios de aceite na especificação. |
 | Produto | Escopo pode crescer com localização automática, favoritos, histórico ou alertas não descritos no briefing. | Média | Médio: atrasos e aumento de complexidade antes de validar o valor principal. | Delimitar o MVP, registrar itens fora de escopo e exigir priorização explícita para novas funcionalidades. |
-| Técnico | Indisponibilidade, latência ou limites de requisição do provedor podem interromper buscas e consultas. | Média | Alto: usuários ficam sem dados ou recebem respostas lentas. | Avaliar limites e SLA antes da escolha; definir timeout, tratamento de erro, cache com validade explícita e monitoramento da dependência. |
+| Técnico | Indisponibilidade, latência ou limites de requisição do provedor podem interromper buscas e consultas. | Média | Alto: usuários ficam sem dados ou recebem respostas lentas. | Validar limites, cobertura e disponibilidade do Open-Meteo antes da integração; definir timeout, tratamento de erro, cache com validade explícita e monitoramento da dependência. |
 | Técnico | Cobertura ou geocodificação insuficiente pode omitir cidades ou selecionar localidade homônima. | Média | Alto: dados meteorológicos apresentados para a cidade errada ou busca sem resultado. | Validar cidades representativas dos mercados-alvo; apresentar contexto regional nos resultados e testar entradas com acentos, aliases e homônimos. |
 | Técnico | Dados podem estar desatualizados, ter qualidade variável ou ser associados ao dia/fuso horário incorreto. | Média | Alto: decisões baseadas em informações apresentadas como atuais, mas incorretas ou confusas. | Definir validade e frequência de atualização; exibir horário da última atualização; usar fuso da localidade e testar mudanças de data e limites de período. |
-| Técnico | Custos, licença, limites ou termos do provedor podem não atender ao uso previsto. | Média | Alto: aumento de custo, restrição de uso ou necessidade de trocar a integração após o desenvolvimento. | Revisar termos, cobertura, cotas e projeção de volume antes de adotar o serviço; manter acesso a dados isolado em uma camada de serviço. |
+| Técnico | Custos, licença, limites ou termos do provedor podem não atender ao uso previsto. | Média | Alto: aumento de custo, restrição de uso ou necessidade de trocar a integração após o desenvolvimento. | Revisar termos, cobertura, cotas e projeção de volume do Open-Meteo antes da integração; manter acesso a dados isolado em uma camada de serviço. |
 | Técnico | A aplicação pode não atingir metas de performance ou disponibilidade em redes móveis ou picos de uso. | Média | Alto: abandono, falhas de consulta e descumprimento das metas propostas de qualidade. | Validar metas com stakeholders; medir latência ponta a ponta; testar em redes e dispositivos representativos; definir limites, cache e monitoramento. |
 | Técnico | Layout, navegação por teclado ou suporte de navegador podem falhar em dispositivos móveis ou para usuários com deficiência. | Média | Alto: partes da população não conseguem usar o serviço ou completar fluxos essenciais. | Definir matriz de dispositivos e navegadores; validar responsividade e acessibilidade com testes automatizados e manuais desde os primeiros protótipos. |
 | Técnico | Conversão e arredondamento entre Celsius e Fahrenheit podem divergir entre clima atual e previsão. | Baixa | Médio: valores inconsistentes reduzem confiança e podem confundir o usuário. | Manter uma unidade canônica no domínio, centralizar a conversão e testar valores-limite e todos os campos de temperatura exibidos. |
@@ -63,18 +93,18 @@ As classificações abaixo são estimativas iniciais, baseadas no briefing dispo
 7. **Variações de nomes:** A busca deve aceitar acentos, nomes alternativos, transliterações e nomes em outros idiomas? **Impacto:** buscas por entradas válidas podem não encontrar a cidade esperada.
 8. **Busca sem resultado ou inválida:** O que informar quando não houver correspondência, a entrada for inválida ou o serviço de busca falhar? **Impacto:** sem um comportamento definido, o usuário pode não entender se errou ou se houve uma falha técnica.
 9. **Localização automática:** O app deve detectar a localização do usuário? Deve ser opcional e depender de permissão? **Impacto:** a decisão afeta privacidade, permissões e a experiência inicial.
-10. **Persistência da cidade:** O app deve lembrar a última cidade, oferecer favoritos ou guardar histórico? Por quanto tempo e em qual dispositivo? **Impacto:** isso determina necessidades de armazenamento, conta e sincronização.
+10. **Persistência local:** Sem autenticação e sem persistência no servidor, o app deve lembrar no navegador a última cidade, favoritos ou histórico? Por quanto tempo? **Impacto:** a decisão ainda afeta armazenamento local, privacidade e comportamento entre sessões, embora não haja conta ou sincronização entre dispositivos.
 
 ### Dados meteorológicos
 
 11. **Conteúdo do clima atual:** Quais informações serão exibidas, como temperatura, sensação térmica, condição, umidade, vento e precipitação? **Impacto:** “clima atual” não define os dados necessários nem permite estimar a integração.
-12. **Definição dos cinco dias:** São os próximos cinco dias ou hoje mais quatro dias? A previsão será diária ou incluirá períodos horários? **Impacto:** interpretações diferentes alteram dados, interface e critérios de aceite.
+12. **Granularidade da previsão:** A previsão de hoje mais quatro dias será exibida como resumo diário ou incluirá períodos horários? **Impacto:** a resposta altera os dados solicitados, a interface e os critérios de aceite.
 13. **Detalhes da previsão:** Cada dia deve incluir mínima e máxima, condição predominante, probabilidade de chuva ou outros indicadores? **Impacto:** a previsão pode ser entregue com informações insuficientes para o uso esperado.
-14. **Fuso horário e formato:** Datas e horários seguirão a cidade consultada ou o dispositivo do usuário? Qual idioma e formato devem ser usados? **Impacto:** períodos podem aparecer associados ao dia errado, sobretudo em cidades de outros fusos.
+14. **Fuso horário e formato:** Qual fuso define o dia atual da previsão e como datas e horários devem ser formatados em pt-BR? **Impacto:** períodos podem aparecer associados ao dia errado, sobretudo em cidades de outros fusos.
 15. **Atualização e validade:** Com que frequência atualizar os dados? Deve ser exibido o horário da última atualização e qual será o limite para considerar os dados vencidos? **Impacto:** informações antigas podem ser confundidas com condições atuais.
-16. **Provedor de dados:** Qual provedor será usado e quais são seus custos, limites, cobertura, licença e garantias de serviço? **Impacto:** sem essa escolha, não se avaliam viabilidade, cobertura, custos ou dependências.
+16. **Condições do provedor:** Quais são os termos de uso, limites, cobertura, custos aplicáveis e garantias de disponibilidade do Open-Meteo? **Impacto:** sem essa validação, há risco de incompatibilidade com o uso pretendido, restrições ou indisponibilidade.
 17. **Precisão e divergências:** Que nível de precisão é esperado e como tratar previsões divergentes ou indisponíveis para uma localidade? **Impacto:** usuários podem interpretar estimativas como garantias ou perder confiança em resultados inconsistentes.
-18. **Unidades:** Celsius/Fahrenheit se aplica somente à temperatura? Como serão tratados arredondamento, símbolos e persistência da escolha? **Impacto:** a alternância pode produzir valores inconsistentes ou comportamento inesperado entre visitas.
+18. **Alternância de unidades:** Celsius será o padrão; a alternância para Fahrenheit se aplica a quais campos? A preferência permanece apenas durante a sessão ou no navegador? **Impacto:** sem essa definição, a conversão pode ser inconsistente e a preferência pode surpreender o usuário em visitas futuras.
 
 ### Experiência e qualidade
 
@@ -97,7 +127,11 @@ As classificações abaixo são estimativas iniciais, baseadas no briefing dispo
 ## Suposições
 
 - A consulta será feita por cidade escolhida pelo usuário; localização automática não é requisito confirmado.
-- A previsão de cinco dias será associada à cidade selecionada.
+- Open-Meteo será a fonte de dados inicial e não exigirá API key.
+- A previsão cobrirá o dia atual e os quatro dias seguintes; o fuso usado para definir o dia atual ainda precisa ser confirmado.
+- Celsius será a unidade padrão; a persistência da preferência após alternância ainda precisa ser definida.
 - A alternância entre Celsius e Fahrenheit altera a apresentação dos valores, sem necessariamente exigir uma nova busca.
+- Não haverá autenticação nem persistência de dados no servidor; eventual armazenamento local no navegador ainda precisa ser definido.
+- A interface será em português do Brasil; formatos de data e hora ainda precisam ser definidos.
 - O uso em dispositivos móveis exige uma interface responsiva, não necessariamente um aplicativo nativo.
-- O provedor de dados, a frequência de atualização e os detalhes da previsão serão definidos nas etapas seguintes.
+- A frequência de atualização e os detalhes da previsão serão definidos nas etapas seguintes.
