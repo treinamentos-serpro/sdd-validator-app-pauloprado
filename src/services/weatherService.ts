@@ -1,6 +1,25 @@
-import type { City } from '../types/weather';
+import type { City, CurrentWeather, ForecastDay, WeatherData } from '../types/weather';
 
 const GEOCODING_ENDPOINT = 'https://geocoding-api.open-meteo.com/v1/search';
+const FORECAST_ENDPOINT = 'https://api.open-meteo.com/v1/forecast';
+const CURRENT_FIELDS = [
+  'temperature_2m',
+  'apparent_temperature',
+  'relative_humidity_2m',
+  'precipitation',
+  'surface_pressure',
+  'wind_speed_10m',
+  'weather_code',
+  'is_day',
+].join(',');
+const DAILY_FIELDS = [
+  'temperature_2m_min',
+  'temperature_2m_max',
+  'precipitation_probability_max',
+  'precipitation_sum',
+  'wind_speed_10m_max',
+  'weather_code',
+].join(',');
 
 export class WeatherServiceError extends Error {
   readonly status?: number;
@@ -57,6 +76,54 @@ function mapCity(value: unknown): City {
   return city;
 }
 
+function nullableNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function dailyNumber(daily: Record<string, unknown>, key: string, index: number): number | null {
+  const values = daily[key];
+  return Array.isArray(values) ? nullableNumber(values[index]) : null;
+}
+
+function mapCurrent(value: unknown): CurrentWeather {
+  if (!isRecord(value) || typeof value.time !== 'string') {
+    throw new WeatherServiceError('Resposta incompleta do serviço meteorológico.');
+  }
+
+  return {
+    time: value.time,
+    temperatureC: nullableNumber(value.temperature_2m),
+    apparentTemperatureC: nullableNumber(value.apparent_temperature),
+    relativeHumidityPct: nullableNumber(value.relative_humidity_2m),
+    precipitationMm: nullableNumber(value.precipitation),
+    pressureHpa: nullableNumber(value.surface_pressure),
+    windSpeedKmh: nullableNumber(value.wind_speed_10m),
+    weatherCode: nullableNumber(value.weather_code),
+    isDay: value.is_day === 0 ? false : value.is_day === 1 ? true : null,
+  };
+}
+
+function mapForecast(value: unknown): ForecastDay[] {
+  if (!isRecord(value) || !Array.isArray(value.time) || value.time.length < 5) {
+    throw new WeatherServiceError('Resposta incompleta do serviço meteorológico.');
+  }
+
+  const dates = value.time.slice(0, 5);
+  if (!dates.every((date): date is string => typeof date === 'string')) {
+    throw new WeatherServiceError('Resposta incompleta do serviço meteorológico.');
+  }
+
+  return dates.map((date, index) => ({
+    date,
+    temperatureMinC: dailyNumber(value, 'temperature_2m_min', index),
+    temperatureMaxC: dailyNumber(value, 'temperature_2m_max', index),
+    precipitationProbabilityMaxPct: dailyNumber(value, 'precipitation_probability_max', index),
+    precipitationSumMm: dailyNumber(value, 'precipitation_sum', index),
+    windSpeedMaxKmh: dailyNumber(value, 'wind_speed_10m_max', index),
+    weatherCode: dailyNumber(value, 'weather_code', index),
+  }));
+}
+
 export async function searchCities(name: string): Promise<City[]> {
   const trimmedName = name.trim();
   if (!trimmedName) {
@@ -96,4 +163,50 @@ export async function searchCities(name: string): Promise<City[]> {
   }
 
   return payload.results.map(mapCity);
+}
+
+export async function getWeather(city: City): Promise<WeatherData> {
+  const params = new URLSearchParams({
+    latitude: String(city.latitude),
+    longitude: String(city.longitude),
+    current: CURRENT_FIELDS,
+    daily: DAILY_FIELDS,
+    temperature_unit: 'celsius',
+    wind_speed_unit: 'kmh',
+    forecast_days: '5',
+  });
+  if (city.timezone) {
+    params.set('timezone', city.timezone);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${FORECAST_ENDPOINT}?${params.toString()}`);
+  } catch (cause) {
+    throw new WeatherServiceError('Falha ao obter dados meteorológicos.', undefined, { cause });
+  }
+
+  if (!response.ok) {
+    throw new WeatherServiceError('Falha ao obter dados meteorológicos.', response.status);
+  }
+
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch (cause) {
+    throw new WeatherServiceError('Resposta inválida do serviço meteorológico.', undefined, {
+      cause,
+    });
+  }
+
+  if (!isRecord(payload) || payload.current === undefined || payload.daily === undefined) {
+    throw new WeatherServiceError('Resposta incompleta do serviço meteorológico.');
+  }
+
+  return {
+    city,
+    current: mapCurrent(payload.current),
+    forecast: mapForecast(payload.daily),
+    retrievedAt: new Date().toISOString(),
+  };
 }
