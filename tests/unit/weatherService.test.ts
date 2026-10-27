@@ -3,6 +3,7 @@ import { getWeather, searchCities, WeatherServiceError } from '../../src/service
 import type { City } from '../../src/types/weather';
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -49,6 +50,7 @@ describe('searchCities', () => {
     ]);
     expect(fetchMock).toHaveBeenCalledWith(
       "https://geocoding-api.open-meteo.com/v1/search?name=S%C3%A3o%20Jo%C3%A3o%20d'Alian%C3%A7a",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 
@@ -80,6 +82,55 @@ describe('searchCities', () => {
     );
 
     await expect(searchCities('Recife')).rejects.toBeInstanceOf(WeatherServiceError);
+  });
+
+  it('converts network failures to WeatherServiceError', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('network failure')));
+
+    await expect(searchCities('Recife')).rejects.toMatchObject({
+      name: 'WeatherServiceError',
+      message: 'Falha de rede.',
+    });
+  });
+
+  it('aborts after 10 seconds and reports a timeout', async () => {
+    vi.useFakeTimers();
+    let requestSignal: AbortSignal | undefined;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, init: RequestInit) => {
+        requestSignal = init.signal ?? undefined;
+        return new Promise<Response>((_resolve, reject) => {
+          requestSignal?.addEventListener(
+            'abort',
+            () => reject(new DOMException('Aborted', 'AbortError')),
+            { once: true },
+          );
+        });
+      }),
+    );
+
+    const request = searchCities('Recife');
+    const rejection = expect(request).rejects.toMatchObject({
+      name: 'WeatherServiceError',
+      message: 'A requisição demorou demais.',
+    });
+    await vi.advanceTimersByTimeAsync(10_000);
+    await rejection;
+
+    expect(requestSignal?.aborted).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('clears the timeout after the request completes', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [] }) }),
+    );
+
+    await expect(searchCities('Recife')).resolves.toEqual([]);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
 

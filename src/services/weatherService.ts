@@ -20,6 +20,7 @@ const DAILY_FIELDS = [
   'wind_speed_10m_max',
   'weather_code',
 ].join(',');
+const REQUEST_TIMEOUT_MS = 10_000;
 
 export class WeatherServiceError extends Error {
   readonly status?: number;
@@ -33,6 +34,22 @@ export class WeatherServiceError extends Error {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+async function fetchWithTimeout(url: string): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } catch (cause) {
+    if (isRecord(cause) && cause.name === 'AbortError') {
+      throw new WeatherServiceError('A requisição demorou demais.', undefined, { cause });
+    }
+    throw new WeatherServiceError('Falha de rede.', undefined, { cause });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function mapCity(value: unknown): City {
@@ -130,12 +147,9 @@ export async function searchCities(name: string): Promise<City[]> {
     return [];
   }
 
-  let response: Response;
-  try {
-    response = await fetch(`${GEOCODING_ENDPOINT}?name=${encodeURIComponent(trimmedName)}`);
-  } catch (cause) {
-    throw new WeatherServiceError('Falha ao buscar cidades.', undefined, { cause });
-  }
+  const response = await fetchWithTimeout(
+    `${GEOCODING_ENDPOINT}?name=${encodeURIComponent(trimmedName)}`,
+  );
 
   if (!response.ok) {
     throw new WeatherServiceError('Falha ao buscar cidades.', response.status);
@@ -179,12 +193,7 @@ export async function getWeather(city: City): Promise<WeatherData> {
     params.set('timezone', city.timezone);
   }
 
-  let response: Response;
-  try {
-    response = await fetch(`${FORECAST_ENDPOINT}?${params.toString()}`);
-  } catch (cause) {
-    throw new WeatherServiceError('Falha ao obter dados meteorológicos.', undefined, { cause });
-  }
+  const response = await fetchWithTimeout(`${FORECAST_ENDPOINT}?${params.toString()}`);
 
   if (!response.ok) {
     throw new WeatherServiceError('Falha ao obter dados meteorológicos.', response.status);
