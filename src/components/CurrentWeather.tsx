@@ -28,18 +28,18 @@ export default function CurrentWeather({ city, current, unit }: CurrentWeatherPr
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-medium uppercase tracking-wide text-white/65">Clima atual</p>
-          <h2 id="current-weather-heading" className="mt-1 text-2xl font-semibold">
+          <h2 id="current-weather-heading" className="mt-1 break-words text-2xl font-semibold">
             {city.name}
           </h2>
           {locationDetails && <p className="mt-1 text-sm text-white/65">{locationDetails}</p>}
           <p className="mt-4 text-base text-white/80">{condition.label}</p>
         </div>
 
-        <div className="flex items-center gap-4">
-          <span aria-hidden="true" className="text-6xl leading-none sm:text-7xl">
+        <div className="flex min-w-0 flex-wrap items-center gap-3 sm:flex-nowrap sm:gap-4">
+          <span aria-hidden="true" className="text-5xl leading-none sm:text-7xl">
             {condition.icon}
           </span>
-          <p className="text-6xl font-semibold leading-none tabular-nums sm:text-7xl">
+          <p className="whitespace-nowrap text-5xl font-semibold leading-none tabular-nums sm:text-7xl">
             {formatTemperature(current.temperatureC, unit)}
           </p>
         </div>

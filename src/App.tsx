@@ -119,6 +119,7 @@ export default function App() {
           <EmptyState
             title="Nenhuma cidade encontrada"
             tip="Confira a grafia do nome e tente buscar novamente."
+            announce
           />
         )}
 

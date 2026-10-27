@@ -35,6 +35,7 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: 'Nenhuma cidade encontrada' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
   });
 
   it('keeps unit as UI state and derives displayed temperatures', async () => {
