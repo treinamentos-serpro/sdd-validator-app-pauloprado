@@ -114,6 +114,19 @@ Os valores e níveis abaixo são metas iniciais propostas para tornar a validaç
 - **NFR-07 — Compatibilidade:** proposta inicial de suporte às versões atuais e imediatamente anteriores dos navegadores móveis e desktop prioritários. Definir e publicar a matriz de navegadores, versões, sistemas operacionais e dispositivos antes de validar compatibilidade.
 - **NFR-08 — Segurança e privacidade:** todas as comunicações devem usar HTTPS. O MVP não coleta nem armazena localização precisa, não autentica usuários e não persiste dados no servidor. Confirmar requisitos corporativos, legais e de privacidade adicionais antes do lançamento.
 
+## Traceability Matrix
+
+| User Story / FR | Acceptance Criteria | NFRs relevantes |
+| --- | --- | --- |
+| US-01 / FR-01 — Buscar cidade | AC-01, AC-01b, AC-01c | NFR-01, NFR-02, NFR-03, NFR-04, NFR-07, NFR-08 |
+| US-02 / FR-02 — Selecionar cidade | AC-02 | NFR-01, NFR-02, NFR-03, NFR-04, NFR-06, NFR-07, NFR-08 |
+| US-03 / FR-03 — Consultar clima atual | AC-03, AC-03b, AC-03c | NFR-01, NFR-02, NFR-03, NFR-04, NFR-05, NFR-06, NFR-07, NFR-08 |
+| US-04 / FR-04 — Consultar previsão | AC-04, AC-04b | NFR-01, NFR-02, NFR-03, NFR-04, NFR-05, NFR-06, NFR-07, NFR-08 |
+| US-05 / FR-05 — Alternar unidades | AC-05 | NFR-01, NFR-02, NFR-03, NFR-06, NFR-07 |
+| US-06 / FR-06 — Atualizar dados ao trocar cidade | AC-06, AC-06b | NFR-01, NFR-03, NFR-04, NFR-05, NFR-06, NFR-07, NFR-08 |
+| US-07 / FR-07 — Informar falhas e permitir retry | AC-07a, AC-07b, AC-07c, AC-07d | NFR-02, NFR-03, NFR-04, NFR-05, NFR-06, NFR-07, NFR-08 |
+| US-08 / FR-08 — Indicar carregamento | AC-08 | NFR-02, NFR-03, NFR-04, NFR-07 |
+
 ## Edge Cases
 
 - **Input vazio:** se o campo estiver vazio ou contiver somente espaços, não enviar requisição, não iniciar carregamento e solicitar que a pessoa informe uma cidade.
