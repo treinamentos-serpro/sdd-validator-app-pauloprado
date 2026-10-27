@@ -82,7 +82,7 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 ### T-14
 - **Título:** Implementar tabela de códigos WMO
 - **Descrição curta:** Mapear códigos para rótulos pt-BR e ícones aprovados, sem inventar assets ou fallbacks.
-- **Critérios de aceite:** `src/lib/weatherCode.ts` mapeia somente códigos, rótulos pt-BR e ícones aprovados na tabela T-02; código desconhecido segue exclusivamente o fallback aprovado, sem rótulo ou asset inventado, conforme asserts de T-15. Sem decisão aprovada para tabela/fallback, permanece `Bloqueada` (FR-03, FR-04; AC-03b, AC-04b; NFR-06).
+- **Critérios de aceite:** Se a extensão WMO for aprovada em T-02, `src/lib/weatherCode.ts` mapeia somente códigos, rótulos pt-BR e ícones aprovados; código desconhecido segue o fallback aprovado, sem rótulo ou asset inventado, conforme T-15. Se for adiada, registrar a tarefa como `Adiada` sem bloquear FR-03/FR-04 (FR-03, FR-04; AC-03b, AC-04b; NFR-06).
 - **Dependências:** T-02, T-05
 - **Arquivos prováveis:** `src/lib/weatherCode.ts`
 - **Tipo:** Data
@@ -160,17 +160,17 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 
 ### T-30
 - **Título:** Implementar clima atual
-- **Descrição curta:** Apresentar campos aprovados, indisponibilidade e WMO aprovado.
-- **Critérios de aceite:** Para a cidade vigente, exibe temperatura válida (fixture 18 °C como `18 °C`) e somente campos aprovados; campo ausente aparece `Indisponível`, sem valor inventado ou dado da cidade anterior. Temperatura ausente com outros campos válidos e ausência total seguem decisão T-02; testar em T-31 e bloquear escopo não aprovado (FR-03, FR-06; AC-03, AC-03b, AC-03c, AC-06; NFR-06).
-- **Dependências:** T-02, T-05, T-08, T-12, T-14, T-20
+- **Descrição curta:** Apresentar campos aprovados e indisponibilidade; WMO é extensão opcional via T-14.
+- **Critérios de aceite:** Para a cidade vigente, exibe temperatura válida (fixture 18 °C como `18 °C`) e somente campos aprovados; campo ausente aparece `Indisponível`, sem valor inventado ou dado da cidade anterior. Temperatura ausente com outros campos válidos e ausência total seguem decisão T-02; testar em T-31. A tela principal não depende de rótulos/ícones WMO (FR-03, FR-06; AC-03, AC-03b, AC-03c, AC-06; NFR-06).
+- **Dependências:** T-02, T-05, T-08, T-12, T-20
 - **Arquivos prováveis:** `src/components/CurrentWeather.tsx`
 - **Tipo:** UI
 
 ### T-32
 - **Título:** Implementar forecast
-- **Descrição curta:** Apresentar datas/campos aprovados e estados incompleto/indisponível.
-- **Critérios de aceite:** Para a cidade selecionada, mostra somente campos/granularidade aprovados e datas locais válidas recebidas, no máximo cinco começando por hoje; lacunas não são preenchidas; menos de cinco é `Previsão incompleta` e nenhuma data válida é `Previsão indisponível`. Fuso/fallback segue T-02; campo ou decisão pendente bloqueia a tarefa (FR-04; AC-04, AC-04b; NFR-06).
-- **Dependências:** T-02, T-05, T-10, T-12, T-14, T-20
+- **Descrição curta:** Apresentar datas/campos aprovados e estados incompleto/indisponível; WMO é extensão opcional via T-14.
+- **Critérios de aceite:** Para a cidade selecionada, mostra somente campos/granularidade aprovados e datas locais válidas recebidas, no máximo cinco começando por hoje; lacunas não são preenchidas; menos de cinco é `Previsão incompleta` e nenhuma data válida é `Previsão indisponível`. Fuso/fallback segue T-02; campo ou decisão pendente bloqueia a tarefa. A previsão principal não depende de rótulos/ícones WMO (FR-04; AC-04, AC-04b; NFR-06).
+- **Dependências:** T-02, T-05, T-10, T-12, T-20
 - **Arquivos prováveis:** `src/components/Forecast.tsx`
 - **Tipo:** UI
 
@@ -230,7 +230,7 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 ### T-15
 - **Título:** Testar tabela de códigos WMO
 - **Descrição curta:** Cobrir mapeamentos e fallback com Vitest.
-- **Critérios de aceite:** `pnpm test -- tests/lib/weatherCode.test.ts` passa verificando cada mapeamento aprovado de código para rótulo/ícone e o comportamento aprovado para código desconhecido; não aceita conteúdo não presente na tabela T-02. Fixtures locais, sem API (FR-03, FR-04; AC-03b, AC-04b; NFR-06).
+- **Critérios de aceite:** Se T-02 aprovar a extensão, `pnpm test -- tests/lib/weatherCode.test.ts` passa verificando cada mapeamento aprovado e o fallback de código desconhecido, sem conteúdo inventado. Se T-02 adiar a extensão, registrar `Adiada` e não criar teste/assets para o MVP (FR-03, FR-04; AC-03b, AC-04b; NFR-06).
 - **Dependências:** T-02, T-14
 - **Arquivos prováveis:** `tests/lib/weatherCode.test.ts`
 - **Tipo:** Test
@@ -286,7 +286,7 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 ### T-31
 - **Título:** Testar clima atual
 - **Descrição curta:** Cobrir dados válidos, parciais e indisponíveis com Testing Library.
-- **Critérios de aceite:** `pnpm test -- tests/components/CurrentWeather.test.tsx` passa afirmando `18 °C`; campo aprovado ausente como `Indisponível`; temperatura ausente com outro campo válido mantém esse campo e não mostra temperatura antiga; ausência total conforme decisão T-02; rótulo/ícone WMO corresponde à tabela aprovada. Sem API ao vivo e sem decisão presumida (FR-03; AC-03, AC-03b, AC-03c; NFR-06).
+- **Critérios de aceite:** `pnpm test -- tests/components/CurrentWeather.test.tsx` passa afirmando `18 °C`; campo aprovado ausente como `Indisponível`; temperatura ausente com outro campo válido mantém esse campo e não mostra temperatura antiga; ausência total conforme decisão T-02. Sem API ao vivo; WMO é coberto separadamente por T-15 se aprovado (FR-03; AC-03, AC-03b, AC-03c; NFR-06).
 - **Dependências:** T-02, T-30
 - **Arquivos prováveis:** `tests/components/CurrentWeather.test.tsx`
 - **Tipo:** Test
@@ -294,7 +294,7 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 ### T-33
 - **Título:** Testar forecast
 - **Descrição curta:** Cobrir cinco datas e respostas parciais com Testing Library.
-- **Critérios de aceite:** `pnpm test -- tests/components/Forecast.test.tsx` passa com relógio, timezone e fixtures controlados: renderiza exatamente cinco datas locais consecutivas (sem sexta), somente dados recebidos; exibe `Previsão incompleta` para menos de cinco e `Previsão indisponível` para nenhuma válida; ausência de campo não inventa valor e WMO usa tabela aprovada. Sem API ao vivo (FR-04; AC-04, AC-04b; NFR-06).
+- **Critérios de aceite:** `pnpm test -- tests/components/Forecast.test.tsx` passa com relógio, timezone e fixtures controlados: renderiza exatamente cinco datas locais consecutivas (sem sexta), somente dados recebidos; exibe `Previsão incompleta` para menos de cinco e `Previsão indisponível` para nenhuma válida; ausência de campo não inventa valor. Sem API ao vivo; WMO é coberto separadamente por T-15 se aprovado (FR-04; AC-04, AC-04b; NFR-06).
 - **Dependências:** T-02, T-32
 - **Arquivos prováveis:** `tests/components/Forecast.test.tsx`
 - **Tipo:** Test
@@ -397,6 +397,74 @@ Decisões ainda abertas são gates: tarefas dependentes só avançam com escolha
 | FR-08 — Indicar carregamento | T-20 (estado loading), T-24 (apresentação loading), T-36 (composição) | T-21, T-29, T-37, T-38, T-39 |
 
 Todos os requisitos FR-01 a FR-08 têm ao menos uma tarefa de implementação e uma tarefa de teste/validação. Nenhum requisito funcional está sem cobertura no backlog.
+
+## Prioridade e tamanho
+
+- **P0:** caminho crítico para um MVP funcional e verificável dos requisitos funcionais.
+- **P1:** validação de qualidade/produção após a primeira fatia utilizável; não deve ser declarada concluída sem evidência.
+- **P2:** melhoria opcional que não bloqueia os FR obrigatórios do MVP. Neste backlog, T-14/T-15 são a extensão opcional de rótulos/ícones WMO; itens fora de escopo não foram convertidos em tarefas.
+- **P (pequeno):** uma unidade localizada, normalmente um arquivo e um comportamento/teste direto.
+- **M (médio):** uma integração delimitada ou múltiplos cenários relacionados numa única unidade.
+- **G (grande):** decisões que abrangem vários domínios, fluxo integrado amplo ou medição que depende de ambiente/amostra/janela.
+
+| Tarefa | Prioridade | Tamanho |
+| --- | --- | --- |
+| T-01 | P0 | G |
+| T-02 | P0 | G |
+| T-03 | P0 | G |
+| T-04 | P0 | M |
+| T-05 | P0 | P |
+| T-06 | P0 | P |
+| T-07 | P0 | P |
+| T-08 | P0 | P |
+| T-09 | P0 | P |
+| T-10 | P0 | M |
+| T-11 | P0 | M |
+| T-12 | P0 | P |
+| T-13 | P0 | P |
+| T-14 | P2 | M |
+| T-15 | P2 | P |
+| T-16 | P0 | M |
+| T-17 | P0 | M |
+| T-18 | P0 | M |
+| T-19 | P0 | M |
+| T-20 | P0 | G |
+| T-21 | P0 | G |
+| T-22 | P0 | P |
+| T-23 | P0 | P |
+| T-24 | P0 | P |
+| T-25 | P0 | P |
+| T-26 | P0 | M |
+| T-27 | P0 | P |
+| T-28 | P0 | P |
+| T-29 | P0 | M |
+| T-30 | P0 | P |
+| T-31 | P0 | M |
+| T-32 | P0 | M |
+| T-33 | P0 | M |
+| T-34 | P0 | P |
+| T-35 | P0 | P |
+| T-36 | P0 | G |
+| T-37 | P0 | G |
+| T-38 | P0 | G |
+| T-39 | P0 | M |
+| T-40 | P1 | M |
+| T-41 | P1 | M |
+| T-42 | P0 | P |
+| T-43 | P1 | G |
+| T-44 | P1 | G |
+| T-45 | P1 | G |
+
+## Sequência vertical sugerida
+
+1. **Gate de produto/contratos:** concluir T-01 a T-05 para a fatia em questão. Priorizar primeiro busca, geocoding e temperatura atual; decisões exclusivas de forecast/unidade podem bloquear somente a fatia posterior se os contratos forem separados e aprovados.
+2. **Fatia vertical 1 — Buscar cidade e consultar temperatura atual:** T-06, T-07, T-08, T-09, T-16, T-17, T-22 a T-29, T-30, T-31 e uma integração/teste de `App` reduzidos ao fluxo atual. Entrega visível: busca, seleção, temperatura atual e estados loading/vazio/erro, validada com testes e sem esperar forecast, unidade ou WMO.
+3. **Fatia vertical 2 — Previsão de cinco datas:** T-10, T-11, parte forecast de T-18/T-19, T-32/T-33 e integração/teste de `App` atualizado. Entrega visível: previsão local para cinco datas, inclusive tratamento de resposta parcial.
+4. **Fatia vertical 3 — Alternância de unidade:** T-12/T-13 e T-34/T-35, integradas e verificadas no fluxo completo; converte a apresentação sem nova requisição.
+5. **Fatia vertical 4 — E2E e qualidade:** T-38/T-39 cobrem os viewports desktop/tablet/mobile; T-40 a T-45 registram acessibilidade, compatibilidade, gates e medições reais.
+6. **Extensão P2 — Apresentação WMO:** executar T-14/T-15 somente após aprovação da tabela/ícones; não bloqueia as quatro fatias obrigatórias.
+
+**Mudança necessária para a primeira fatia ficar executável:** o backlog atual acopla current e forecast em T-18/T-19 e em `useWeather` T-20/T-21; T-36/T-37 também exigem Forecast e UnitToggle. Antes de iniciar a Fatia 1, dividir esses serviços/hook/App em integração mínima de busca+current e extensão posterior de forecast/unidade, ajustando dependências e IDs. Sem essa divisão, a primeira entrega executável permanece o MVP completo de T-36/T-37, não a Fatia 1 isolada.
 
 ## Bloqueios finais
 Tarefas dependentes não podem assumir valores provisórios: decisões de busca (count, idioma, acentos e contexto), campos/granularidade, fallback de timezone, timeout, freshness, conversão/arredondamento/persistência, tabela WMO, matriz de navegadores e métodos/limiares NFR exigem escolha aprovada com aprovador e fonte no artefato indicado; sem isso, a tarefa correspondente fica `Bloqueada`. Medições de usabilidade, performance e disponibilidade só concluem com participantes ou evidência operacional no ambiente e método aprovados. Mantêm-se fora de escopo autenticação, persistência no servidor, GPS, offline/cache, app nativo, alertas, favoritos, histórico, compartilhamento, notificações e deploy.
