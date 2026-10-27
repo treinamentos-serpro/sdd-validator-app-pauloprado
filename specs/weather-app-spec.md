@@ -7,8 +7,8 @@ O objetivo é permitir que a pessoa usuária encontre informações meteorológi
 ## Functional Requirements
 
 - **FR-01 — Buscar cidades:** permitir que a pessoa usuária pesquise cidades pelo nome.
-- **FR-02 — Selecionar cidade:** permitir que a pessoa usuária selecione a cidade desejada quando a busca retornar mais de um resultado.
-- **FR-03 — Consultar clima atual:** apresentar as condições meteorológicas atuais da cidade selecionada.
+- **FR-02 — Selecionar cidade:** apresentar resultados com nome da cidade e, quando disponíveis, região administrativa e país; permitir selecionar a localidade desejada quando houver mais de um resultado.
+- **FR-03 — Consultar clima atual:** apresentar pelo menos a temperatura atual da cidade selecionada, em Celsius por padrão. Outros campos meteorológicos dependem da decisão registrada em Open Questions.
 - **FR-04 — Consultar previsão:** apresentar a previsão da cidade selecionada para hoje e os quatro dias seguintes. A granularidade diária ou horária ainda não foi decidida.
 - **FR-05 — Alternar unidades:** permitir alternar entre Celsius e Fahrenheit nos valores de temperatura apresentados. Celsius é a unidade padrão.
 - **FR-06 — Atualizar dados por cidade:** ao selecionar outra cidade, apresentar o clima atual e a previsão correspondentes à nova seleção.
@@ -25,7 +25,7 @@ As personas abaixo são hipóteses baseadas em usos comuns de um aplicativo de c
 - **US-04 (FR-04):** Como pessoa planejando uma viagem, quero consultar a previsão de hoje e dos quatro dias seguintes para decidir o que levar.
 - **US-05 (FR-05):** Como pessoa que se desloca diariamente, quero alternar entre Celsius e Fahrenheit para interpretar a temperatura na unidade que prefiro.
 - **US-06 (FR-06):** Como pessoa planejando uma viagem, quero selecionar outra cidade e ver os dados atualizados para planejar atividades no destino correto.
-- **US-07 (FR-07):** Como pessoa que se desloca diariamente, quero receber uma mensagem quando a busca ou consulta falhar para saber que não posso confiar em dados indisponíveis.
+- **US-07 (FR-07):** Como pessoa que se desloca diariamente, quero receber uma mensagem clara e poder tentar novamente quando a busca ou consulta falhar para saber que não posso confiar em dados indisponíveis.
 - **US-08 (FR-08):** Como profissional que trabalha ao ar livre, quero ver quando uma busca ou atualização está em andamento para saber que o app está processando minha consulta.
 
 ## Acceptance Criteria
@@ -41,13 +41,13 @@ Para automação, os cenários usam respostas controladas do Open-Meteo e um rel
 	- **When** a pessoa usuária tenta enviar a busca
 	- **Then** nenhuma requisição de geocodificação é enviada e a interface solicita um nome de cidade.
 - **AC-01c (US-01; FR-01)**
-	- **Given** uma busca contendo acentos e pontuação válida, como `São João d'Aliança`, e uma resposta controlada com essa cidade
+	- **Given** uma busca com espaços externos e caracteres válidos, como `  São João d'Aliança  `, e uma resposta controlada contendo essa cidade
 	- **When** a pessoa usuária envia a busca
-	- **Then** a cidade aparece nos resultados com os caracteres preservados e sem erro de codificação.
+	- **Then** a geocodificação recebe `São João d'Aliança` sem os espaços externos, preservando acentos e apóstrofo, e o resultado aparece sem erro de codificação.
 - **AC-02 (US-02; FR-02)**
-	- **Given** dois resultados de cidade distintos exibidos para uma busca
+	- **Given** dois resultados homônimos em regiões ou países diferentes
 	- **When** a pessoa usuária seleciona o segundo resultado
-	- **Then** o segundo resultado passa a ser a cidade selecionada para a consulta.
+	- **Then** os resultados exibem o nome da cidade e, quando disponíveis, região administrativa e país; a cidade selecionada fica identificada com esse contexto e a consulta meteorológica corresponde ao segundo resultado.
 - **AC-03 (US-03; FR-03)**
 	- **Given** uma cidade selecionada e uma resposta de clima atual contendo temperatura de 18 °C
 	- **When** os dados atuais são apresentados
@@ -55,7 +55,11 @@ Para automação, os cenários usam respostas controladas do Open-Meteo e um rel
 - **AC-03b (US-03; FR-03)**
 	- **Given** uma resposta atual com temperatura válida e outro campo previsto para exibição ausente
 	- **When** os dados atuais são apresentados
-	- **Then** a temperatura válida é exibida e o campo ausente é identificado como indisponível, sem ser substituído por um valor inventado ou antigo.
+	- **Then** a temperatura válida é exibida e o campo ausente aparece como `Indisponível`, sem ser substituído por um valor inventado ou antigo.
+- **AC-03c (US-03; FR-03)**
+	- **Given** uma resposta atual sem temperatura válida, mas com outro campo meteorológico válido
+	- **When** os dados atuais são apresentados
+	- **Then** a temperatura aparece como `Indisponível`, os demais campos válidos continuam visíveis e a seção não apresenta uma temperatura antiga como atual.
 - **AC-04 (US-04; FR-04)**
 	- **Given** o relógio de teste fixado em uma data e uma resposta de previsão para essa data e os quatro dias consecutivos seguintes
 	- **When** a previsão é apresentada para uma cidade selecionada
@@ -63,7 +67,7 @@ Para automação, os cenários usam respostas controladas do Open-Meteo e um rel
 - **AC-04b (US-04; FR-04)**
 	- **Given** uma resposta de previsão contendo dados para menos de cinco datas
 	- **When** a previsão é apresentada
-	- **Then** a interface apresenta somente as datas recebidas, informa que a previsão está incompleta e não inventa dados para datas ausentes.
+	- **Then** a interface apresenta somente as datas recebidas e informa `Previsão incompleta`; se nenhuma data válida for recebida, informa `Previsão indisponível`. Não inventa dados para datas ausentes.
 - **AC-05 (US-05; FR-05)**
 	- **Given** temperaturas disponíveis de 0 °C e 20 °C
 	- **When** a consulta inicial é apresentada e, em seguida, a pessoa usuária seleciona Fahrenheit
@@ -73,21 +77,21 @@ Para automação, os cenários usam respostas controladas do Open-Meteo e um rel
 	- **When** a pessoa usuária seleciona a cidade B
 	- **Then** a identificação, o clima atual e a previsão exibidos correspondem à cidade B, e nenhum dado da cidade A permanece apresentado como dado atual.
 - **AC-07a (US-07; FR-07)**
-	- **Given** uma busca cuja resposta de geocodificação não contém resultados
+	- **Given** uma busca cuja geocodificação conclui com sucesso e não contém resultados
 	- **When** a busca termina
-	- **Then** a interface apresenta uma mensagem indicando que nenhuma cidade foi encontrada.
+	- **Then** a interface apresenta `Nenhuma cidade encontrada`, não solicita dados meteorológicos e não associa dados de outra cidade à busca sem resultados.
 - **AC-07b (US-07; FR-07)**
 	- **Given** uma cidade selecionada e uma resposta de falha ao solicitar dados meteorológicos
 	- **When** a consulta termina com erro
-	- **Then** a interface informa que não foi possível obter os dados e não apresenta dados indisponíveis como atuais.
+	- **Then** a interface informa `Não foi possível obter os dados`, remove o carregamento, oferece a ação `Tentar novamente` e não apresenta dados antigos como atuais.
 - **AC-07c (US-07; FR-07)**
 	- **Given** uma requisição de geocodificação que termina com erro de rede ou resposta de erro do serviço
 	- **When** a busca termina
-	- **Then** a interface informa que a busca falhou, diferencia essa falha de uma busca sem resultados e permite uma nova tentativa.
+	- **Then** a interface informa `Falha na busca`, diferencia a falha de `Nenhuma cidade encontrada`, remove o carregamento e oferece a ação `Tentar novamente`.
 - **AC-07d (US-07; FR-07)**
-	- **Given** uma busca ou consulta meteorológica que permanece pendente além do timeout configurado, proposto inicialmente como 8 segundos
-	- **When** o limite de tempo é atingido
-	- **Then** a requisição é encerrada, a indicação de carregamento é removida, a interface informa o timeout e permite uma nova tentativa.
+	- **Given** uma busca ou consulta meteorológica que permanece pendente
+	- **When** 8 segundos se passam sem resposta
+	- **Then** a requisição é encerrada, a indicação de carregamento é removida, a interface informa `A consulta demorou demais` e oferece a ação `Tentar novamente`.
 - **AC-08 (US-08; FR-08)**
 	- **Given** uma busca ou atualização cuja resposta controlada permanece pendente
 	- **When** a operação é iniciada
@@ -95,15 +99,15 @@ Para automação, os cenários usam respostas controladas do Open-Meteo e um rel
 
 ## Non-Functional Requirements
 
-Os valores e níveis abaixo são metas iniciais propostas pelo discovery e precisam ser validados; não são compromissos já aprovados.
+Os valores e níveis abaixo são metas iniciais propostas para tornar a validação objetiva; precisam ser confirmados antes de se tornarem compromissos do produto.
 
-- **NFR-01 — Responsividade:** meta inicial de uso entre 320 px e 1440 px de largura, sem rolagem horizontal nem sobreposição de conteúdo nos fluxos de busca, seleção e consulta. Validar faixa, dispositivos e orientações com as partes interessadas.
-- **NFR-02 — Usabilidade:** como objetivo inicial, permitir buscar e selecionar uma cidade e alternar a unidade sem instruções externas. Definir método de avaliação e meta quantitativa de sucesso durante o planejamento.
-- **NFR-03 — Acessibilidade:** buscar conformidade com WCAG 2.2 nível AA, incluindo operação por teclado, foco visível, nomes acessíveis para controles e contraste adequado. O nível exigido ainda precisa ser confirmado.
-- **NFR-04 — Performance:** meta inicial de p95 de até 3 segundos entre a ação de busca e a apresentação dos resultados, em condições normais de rede. Validar a meta, as condições de medição e como a latência do provedor será contabilizada.
-- **NFR-05 — Disponibilidade:** proposta inicial de disponibilidade mensal mínima de 99,5% para a aplicação, excluindo indisponibilidades do provedor externo. Validar meta, janela de medição e exclusões.
+- **NFR-01 — Responsividade:** em larguras de 320, 375, 768, 1024 e 1440 px, os fluxos de busca, seleção e consulta não devem apresentar rolagem horizontal nem sobreposição de conteúdo. Validar se essa faixa e as orientações cobrem os dispositivos prioritários.
+- **NFR-02 — Usabilidade:** meta inicial: pelo menos 4 de 5 participantes representativos devem conseguir buscar uma cidade, consultar sua temperatura e alternar a unidade em até 60 segundos, sem ajuda. Confirmar público, tamanho da amostra e meta antes de tratar como compromisso.
+- **NFR-03 — Acessibilidade:** meta inicial de WCAG 2.2 nível AA. Os fluxos principais devem ser operáveis por teclado, manter foco visível e nomes acessíveis, e cumprir os critérios de contraste do nível adotado. Validar o nível exigido e combinar avaliação automatizada com revisão manual.
+- **NFR-04 — Performance:** meta inicial de p95 de até 3 segundos entre o envio de uma busca válida e a exibição do clima atual e da previsão, incluindo geocodificação e consulta meteorológica. Medir em 100 execuções bem-sucedidas no ambiente de teste acordado; definir perfil de rede/dispositivo e se a latência do provedor entra na medição.
+- **NFR-05 — Disponibilidade:** proposta inicial de 99,5% por mês-calendário para a aplicação, calculada como minutos disponíveis divididos pelos minutos totais do mês; indisponibilidades do provedor externo ficam fora da meta da aplicação e devem ser monitoradas separadamente. Confirmar meta, manutenção programada e método de medição.
 - **NFR-06 — Integridade e atualidade:** os valores apresentados devem corresponder à cidade e à unidade selecionadas. Dados indisponíveis ou vencidos não devem ser apresentados como atuais. Frequência, validade e indicação da última atualização ainda precisam ser definidas.
-- **NFR-07 — Compatibilidade:** proposta inicial de suporte às versões atuais e imediatamente anteriores dos navegadores móveis e desktop prioritários. Definir a matriz de navegadores, versões, sistemas operacionais e dispositivos antes de validar compatibilidade.
+- **NFR-07 — Compatibilidade:** proposta inicial de suporte às versões atuais e imediatamente anteriores dos navegadores móveis e desktop prioritários. Definir e publicar a matriz de navegadores, versões, sistemas operacionais e dispositivos antes de validar compatibilidade.
 - **NFR-08 — Segurança e privacidade:** proposta de usar HTTPS em todas as comunicações e não coletar nem armazenar localização precisa sem necessidade e consentimento explícito. Confirmar requisitos corporativos, legais, de retenção e privacidade aplicáveis.
 
 ## Edge Cases
@@ -113,12 +117,12 @@ Os valores e níveis abaixo são metas iniciais propostas pelo discovery e preci
 - **Caracteres especiais:** remover espaços externos, mas preservar acentos, espaços internos e pontuação válida, como hífen ou apóstrofo. Nomes como `São João d'Aliança` devem ser enviados e exibidos sem erro de codificação. Busca sem distinção de acentos é uma proposta ainda sujeita a confirmação.
 - **Falha de geocodificação:** se houver erro de rede ou resposta de erro do serviço, informar falha na busca, sem apresentar o estado de “nenhuma cidade encontrada”; remover o carregamento e permitir nova tentativa.
 - **Falha de dados meteorológicos:** se a API falhar após a seleção da cidade, informar que os dados não puderam ser obtidos, manter a cidade identificada e não apresentar dados antigos como atuais.
-- **Timeout:** proposta inicial de limite de 8 segundos por requisição. Ao atingir o limite, encerrar a requisição pendente, remover o carregamento, informar timeout e permitir nova tentativa. O limite precisa de confirmação.
-- **Resposta parcial:** apresentar os campos e datas válidos recebidos; marcar os campos ausentes como indisponíveis e a previsão como incompleta quando faltarem datas. Não inventar valores nem preencher ausências com dados antigos. Se não houver dados essenciais para uma seção, apresentar indisponibilidade somente naquela seção, preservando outras seções válidas.
+- **Timeout:** usar 8 segundos como limite provisório por requisição. Ao atingir o limite, encerrar a requisição pendente, remover o carregamento, informar timeout e oferecer `Tentar novamente`. Confirmar o limite antes da implementação.
+- **Resposta parcial:** apresentar os campos e datas válidos recebidos; marcar campos ausentes com `Indisponível` e a previsão com `Previsão incompleta` quando faltarem datas. Não inventar valores nem preencher ausências com dados antigos. A seção atual exige pelo menos um valor meteorológico atual válido para apresentar dados; a previsão exige pelo menos uma data válida. Se não houver esses dados mínimos, informar indisponibilidade naquela seção e preservar outras seções válidas.
 - A resposta está vencida ou sua última atualização não pode ser determinada; o limite de validade e a apresentação do horário de atualização ainda precisam ser definidos.
 - O fuso da cidade atravessa a meia-noite ou difere do fuso da pessoa usuária, afetando a definição de hoje e os limites das cinco datas da previsão.
 - Há alternância de unidade antes ou durante a exibição de dados, e diferentes campos de temperatura podem exigir conversão consistente; campos abrangidos e arredondamento ainda precisam ser definidos.
-- A pessoa usuária está em uma rede móvel lenta ou perde a conexão durante a busca ou atualização; o comportamento offline e a apresentação de cache ainda precisam ser definidos. A proposta para o MVP é não apresentar cache como resposta atual.
+- A pessoa usuária está em uma rede móvel lenta ou perde a conexão durante a busca ou atualização; o MVP não apresenta dados em cache como atuais nem garante funcionamento offline.
 
 ## Assumptions
 
@@ -135,7 +139,7 @@ Os valores e níveis abaixo são metas iniciais propostas pelo discovery e preci
 
 - **Necessidade e público não validados:** o produto pode priorizar informações inadequadas ou não gerar adoção. Mitigação: validar personas e casos de uso com o público-alvo e definir critérios de sucesso antes de fechar o MVP.
 - **Escopo meteorológico ambíguo:** falta decidir campos atuais, granularidade e conteúdo da previsão, criando risco de retrabalho e divergência de expectativa. Mitigação: resolver essas perguntas e derivar critérios específicos antes do planejamento técnico.
-- **Dependência do Open-Meteo:** latência, indisponibilidade, limites, cobertura, termos ou custos podem inviabilizar o uso previsto. Mitigação: validar essas condições e volume estimado antes da integração; definir tratamento de falha, validade de cache e monitoramento após confirmar as políticas aplicáveis.
+- **Dependência do Open-Meteo:** latência, indisponibilidade, limites, cobertura, termos ou custos podem inviabilizar o uso previsto. Mitigação: validar essas condições e volume estimado antes da integração; definir timeout, tratamento de falha, nova tentativa e monitoramento da dependência.
 - **Geocodificação e localidades homônimas:** cobertura insuficiente ou desambiguação inadequada pode levar a uma cidade errada. Mitigação: validar cidades representativas e definir contexto regional nos resultados; testar acentos, aliases e homônimos depois de decidir as regras de busca.
 - **Dados vencidos ou associados ao dia errado:** frequência, validade e fuso não definidos podem levar a interpretações incorretas. Mitigação: definir essas regras, indicar a última atualização e testar limites de data e fuso antes de declarar dados como atuais.
 - **Privacidade e expansão de escopo:** localização automática, histórico ou persistência podem introduzir coleta de dados e obrigações não previstas. Mitigação: manter esses itens fora do MVP até priorização explícita e revisar necessidade, consentimento e retenção antes de qualquer coleta ou armazenamento.
@@ -150,23 +154,23 @@ Os valores e níveis abaixo são metas iniciais propostas pelo discovery e preci
 - Localização automática ou coleta de localização do dispositivo como comportamento do MVP.
 - Alertas meteorológicos, notificações, favoritos, histórico, compartilhamento e outras funcionalidades adicionais não confirmadas para o MVP.
 - Aplicativo nativo para dispositivos móveis; o requisito confirmado é uso em dispositivos móveis com experiência responsiva.
-- Garantia de funcionamento offline ou apresentação de dados armazenados em cache; comportamento depende de decisão futura.
+- Funcionamento offline e apresentação de dados em cache no MVP. Uma evolução futura poderá considerar dados anteriores somente com identificação explícita de que estão desatualizados e com horário da última atualização.
 
 ## Open Questions
 
-- **Busca e cidades:** quais entradas além do nome da cidade serão aceitas (país, estado, código postal ou coordenadas)? Haverá sugestões enquanto a pessoa digita? Como distinguir cidades homônimas? Para correspondência com acentos, confirmar: (A) busca sem distinção de acentos, recomendada para facilitar a busca, ou (B) correspondência exata dos acentos. Também falta confirmar suporte a aliases, transliterações e nomes em outros idiomas; o comportamento para input vazio e para zero resultados já está proposto em Edge Cases.
+- **Busca e cidades:** quais entradas além do nome da cidade serão aceitas (país, estado, código postal ou coordenadas)? Haverá sugestões enquanto a pessoa digita? A proposta é distinguir resultados pelo nome da cidade e, quando disponíveis, região administrativa e país; qual fallback usar quando esses dados não estiverem disponíveis? Para acentos, confirmar: (A) busca sem distinção de acentos, recomendada, ou (B) correspondência exata. Também falta confirmar suporte a aliases, transliterações e nomes em outros idiomas. Input vazio, pontuação válida e zero resultados já têm comportamento definido em Edge Cases.
 - **Granularidade:** a previsão para hoje e os quatro dias seguintes será diária, horária ou incluirá ambas?
 - **Fuso e formatos:** qual fuso define “hoje” e os limites do período de cinco dias? Quais formatos pt-BR serão usados para datas e horários?
-- **Campos meteorológicos:** quais campos compõem o clima atual e cada período da previsão, incluindo temperatura, sensação térmica, condição, umidade, vento, precipitação, mínimas e máximas ou probabilidade de chuva?
+- **Campos meteorológicos:** temperatura atual é o dado mínimo do clima atual; quais outros campos devem ser exibidos? Para cada data da previsão, quais campos são necessários entre condição, mínima, máxima, precipitação e outros?
 - **Atualização e validade:** com que frequência os dados serão atualizados? Qual será o limite de validade, como será indicada a última atualização e como serão tratados dados vencidos, incompletos ou divergentes?
 - **Open-Meteo:** quais são os termos de uso, limites de requisição, cobertura geográfica, disponibilidade, custos aplicáveis e garantias do provedor? Como serão avaliadas precisão e indisponibilidade por localidade?
 - **Persistência local:** a aplicação deve lembrar no navegador a última cidade, a unidade, favoritos ou histórico? Por quanto tempo e com qual comportamento entre sessões?
 - **Localização:** haverá detecção de localização do dispositivo? Se houver, será opcional, dependerá de permissão e terá consentimento explícito?
 - **Unidades:** quais campos de temperatura serão convertidos para Fahrenheit e Celsius? Como serão definidos conversão, arredondamento e apresentação? A unidade escolhida será lembrada apenas durante a sessão ou no navegador?
-- **Qualidade e compatibilidade:** quais metas de performance e disponibilidade serão aprovadas, sob quais condições e com quais exclusões? Quais navegadores, versões, sistemas operacionais, dispositivos, tamanhos e orientações serão prioritários?
+- **Qualidade e compatibilidade:** confirmar as metas iniciais: responsividade nos cinco breakpoints definidos; 4 de 5 participantes concluindo a tarefa em até 60 segundos; p95 de até 3 segundos em 100 execuções; e disponibilidade de 99,5% por mês-calendário. Qual perfil de rede/dispositivo e quais exclusões serão usados para medir performance? Quais navegadores, versões, sistemas operacionais, dispositivos, tamanhos e orientações serão prioritários? WCAG 2.2 AA será critério obrigatório?
 - **Produto e prioridade:** quais são os critérios de sucesso mensuráveis, qual segmento será prioritário e as hipóteses das três personas serão confirmadas? Alertas, favoritos, histórico, notificações ou outros recursos serão considerados em uma fase posterior?
 - **Volume e operação:** qual o volume inicial e de pico de usuários e consultas? Onde a aplicação será publicada, quais ambientes serão necessários, quem fará monitoramento e suporte e quais métricas, alertas e procedimentos de resposta serão exigidos?
 - **Privacidade e segurança:** haverá analytics ou coleta de dados pessoais? Quais dados poderão ser guardados, por quanto tempo e com qual consentimento? Quais requisitos legais e corporativos se aplicam a privacidade, segurança, retenção, gestão de segredos e proteção contra abuso?
 - **Acessibilidade e usabilidade:** WCAG 2.2 AA será o nível exigido? Qual método e qual meta quantitativa serão usados para avaliar usabilidade e sucesso dos fluxos?
-- **Falhas e conectividade:** confirmar o timeout por requisição: (A) 5 segundos, (B) 8 segundos, recomendação inicial, ou (C) 10 segundos. Para resposta parcial, escolher: (A) apresentar dados disponíveis e marcar ausências, recomendação inicial, ou (B) ocultar a seção inteira se faltar algum campo obrigatório; definir quais campos são essenciais. Para dados antigos em falhas, escolher: (A) não usar cache no MVP, recomendação inicial, ou (B) mostrar a última resposta com horário e indicação explícita de dado desatualizado. Uma nova tentativa exigirá apenas reenviar a busca ou deve haver uma ação explícita de “Tentar novamente”? A aplicação deve oferecer algum comportamento offline?
+- **Falhas e conectividade:** confirmar o timeout provisório de 8 segundos ou escolher 5 ou 10 segundos. O MVP não usa cache como resposta atual, apresenta os campos válidos em respostas parciais, marca ausências e oferece a ação `Tentar novamente`. Há necessidade de suporte offline em uma fase futura?
 - **Plataforma e conteúdo:** a experiência será apenas web responsiva ou há intenção de aplicativo nativo futuro? Existem identidade visual, tom de voz ou diretrizes de conteúdo a seguir?
