@@ -36,6 +36,14 @@ Para automação, os cenários usam respostas controladas do Open-Meteo e um rel
 	- **Given** uma busca por uma cidade e uma resposta de geocodificação contendo essa cidade
 	- **When** a pessoa usuária envia a busca
 	- **Then** a cidade retornada aparece entre os resultados exibidos.
+- **AC-01b (US-01; FR-01)**
+	- **Given** o campo de busca vazio ou contendo somente espaços
+	- **When** a pessoa usuária tenta enviar a busca
+	- **Then** nenhuma requisição de geocodificação é enviada e a interface solicita um nome de cidade.
+- **AC-01c (US-01; FR-01)**
+	- **Given** uma busca contendo acentos e pontuação válida, como `São João d'Aliança`, e uma resposta controlada com essa cidade
+	- **When** a pessoa usuária envia a busca
+	- **Then** a cidade aparece nos resultados com os caracteres preservados e sem erro de codificação.
 - **AC-02 (US-02; FR-02)**
 	- **Given** dois resultados de cidade distintos exibidos para uma busca
 	- **When** a pessoa usuária seleciona o segundo resultado
@@ -44,10 +52,18 @@ Para automação, os cenários usam respostas controladas do Open-Meteo e um rel
 	- **Given** uma cidade selecionada e uma resposta de clima atual contendo temperatura de 18 °C
 	- **When** os dados atuais são apresentados
 	- **Then** a temperatura atual exibida para essa cidade é 18 °C.
+- **AC-03b (US-03; FR-03)**
+	- **Given** uma resposta atual com temperatura válida e outro campo previsto para exibição ausente
+	- **When** os dados atuais são apresentados
+	- **Then** a temperatura válida é exibida e o campo ausente é identificado como indisponível, sem ser substituído por um valor inventado ou antigo.
 - **AC-04 (US-04; FR-04)**
 	- **Given** o relógio de teste fixado em uma data e uma resposta de previsão para essa data e os quatro dias consecutivos seguintes
 	- **When** a previsão é apresentada para uma cidade selecionada
 	- **Then** a interface apresenta dados para as cinco datas retornadas, incluindo a data atual fixada e sem incluir uma sexta data.
+- **AC-04b (US-04; FR-04)**
+	- **Given** uma resposta de previsão contendo dados para menos de cinco datas
+	- **When** a previsão é apresentada
+	- **Then** a interface apresenta somente as datas recebidas, informa que a previsão está incompleta e não inventa dados para datas ausentes.
 - **AC-05 (US-05; FR-05)**
 	- **Given** temperaturas disponíveis de 0 °C e 20 °C
 	- **When** a consulta inicial é apresentada e, em seguida, a pessoa usuária seleciona Fahrenheit
@@ -64,6 +80,14 @@ Para automação, os cenários usam respostas controladas do Open-Meteo e um rel
 	- **Given** uma cidade selecionada e uma resposta de falha ao solicitar dados meteorológicos
 	- **When** a consulta termina com erro
 	- **Then** a interface informa que não foi possível obter os dados e não apresenta dados indisponíveis como atuais.
+- **AC-07c (US-07; FR-07)**
+	- **Given** uma requisição de geocodificação que termina com erro de rede ou resposta de erro do serviço
+	- **When** a busca termina
+	- **Then** a interface informa que a busca falhou, diferencia essa falha de uma busca sem resultados e permite uma nova tentativa.
+- **AC-07d (US-07; FR-07)**
+	- **Given** uma busca ou consulta meteorológica que permanece pendente além do timeout configurado, proposto inicialmente como 8 segundos
+	- **When** o limite de tempo é atingido
+	- **Then** a requisição é encerrada, a indicação de carregamento é removida, a interface informa o timeout e permite uma nova tentativa.
 - **AC-08 (US-08; FR-08)**
 	- **Given** uma busca ou atualização cuja resposta controlada permanece pendente
 	- **When** a operação é iniciada
@@ -84,14 +108,17 @@ Os valores e níveis abaixo são metas iniciais propostas pelo discovery e preci
 
 ## Edge Cases
 
-- A busca não encontra cidade correspondente ou recebe uma entrada inválida; o serviço de busca também pode falhar. O tratamento exato de entradas e mensagens ainda precisa ser definido.
-- A busca retorna cidades homônimas, nomes com acentos, aliases ou resultados de localidades distintas; os formatos aceitos e os dados de desambiguação ainda precisam ser definidos.
-- A cidade selecionada não tem dados atuais ou previsão disponíveis, ou o provedor retorna dados incompletos.
-- O provedor está indisponível, responde com erro ou demora além do limite que vier a ser definido; timeout, cache e apresentação de dados anteriores ainda precisam ser decididos.
+- **Input vazio:** se o campo estiver vazio ou contiver somente espaços, não enviar requisição, não iniciar carregamento e solicitar que a pessoa informe uma cidade.
+- **Cidade sem correspondência:** quando a geocodificação concluir com sucesso, mas retornar zero resultados, informar que nenhuma cidade foi encontrada, manter a busca disponível para correção e não solicitar previsão. Não afirmar que a cidade inexiste nem tratar o caso como erro do serviço.
+- **Caracteres especiais:** remover espaços externos, mas preservar acentos, espaços internos e pontuação válida, como hífen ou apóstrofo. Nomes como `São João d'Aliança` devem ser enviados e exibidos sem erro de codificação. Busca sem distinção de acentos é uma proposta ainda sujeita a confirmação.
+- **Falha de geocodificação:** se houver erro de rede ou resposta de erro do serviço, informar falha na busca, sem apresentar o estado de “nenhuma cidade encontrada”; remover o carregamento e permitir nova tentativa.
+- **Falha de dados meteorológicos:** se a API falhar após a seleção da cidade, informar que os dados não puderam ser obtidos, manter a cidade identificada e não apresentar dados antigos como atuais.
+- **Timeout:** proposta inicial de limite de 8 segundos por requisição. Ao atingir o limite, encerrar a requisição pendente, remover o carregamento, informar timeout e permitir nova tentativa. O limite precisa de confirmação.
+- **Resposta parcial:** apresentar os campos e datas válidos recebidos; marcar os campos ausentes como indisponíveis e a previsão como incompleta quando faltarem datas. Não inventar valores nem preencher ausências com dados antigos. Se não houver dados essenciais para uma seção, apresentar indisponibilidade somente naquela seção, preservando outras seções válidas.
 - A resposta está vencida ou sua última atualização não pode ser determinada; o limite de validade e a apresentação do horário de atualização ainda precisam ser definidos.
 - O fuso da cidade atravessa a meia-noite ou difere do fuso da pessoa usuária, afetando a definição de hoje e os limites das cinco datas da previsão.
 - Há alternância de unidade antes ou durante a exibição de dados, e diferentes campos de temperatura podem exigir conversão consistente; campos abrangidos e arredondamento ainda precisam ser definidos.
-- A pessoa usuária está em uma rede móvel lenta ou perde a conexão durante a busca ou atualização; o comportamento offline e a eventual apresentação de cache ainda precisam ser definidos.
+- A pessoa usuária está em uma rede móvel lenta ou perde a conexão durante a busca ou atualização; o comportamento offline e a apresentação de cache ainda precisam ser definidos. A proposta para o MVP é não apresentar cache como resposta atual.
 
 ## Assumptions
 
@@ -127,7 +154,7 @@ Os valores e níveis abaixo são metas iniciais propostas pelo discovery e preci
 
 ## Open Questions
 
-- **Busca e cidades:** quais entradas além do nome da cidade serão aceitas (país, estado, código postal ou coordenadas)? Haverá sugestões enquanto a pessoa digita? Como distinguir cidades homônimas? A busca aceitará acentos, aliases, transliterações e nomes em outros idiomas? Qual será o comportamento detalhado para entradas inválidas, ausência de resultados e falha do serviço?
+- **Busca e cidades:** quais entradas além do nome da cidade serão aceitas (país, estado, código postal ou coordenadas)? Haverá sugestões enquanto a pessoa digita? Como distinguir cidades homônimas? Para correspondência com acentos, confirmar: (A) busca sem distinção de acentos, recomendada para facilitar a busca, ou (B) correspondência exata dos acentos. Também falta confirmar suporte a aliases, transliterações e nomes em outros idiomas; o comportamento para input vazio e para zero resultados já está proposto em Edge Cases.
 - **Granularidade:** a previsão para hoje e os quatro dias seguintes será diária, horária ou incluirá ambas?
 - **Fuso e formatos:** qual fuso define “hoje” e os limites do período de cinco dias? Quais formatos pt-BR serão usados para datas e horários?
 - **Campos meteorológicos:** quais campos compõem o clima atual e cada período da previsão, incluindo temperatura, sensação térmica, condição, umidade, vento, precipitação, mínimas e máximas ou probabilidade de chuva?
@@ -141,5 +168,5 @@ Os valores e níveis abaixo são metas iniciais propostas pelo discovery e preci
 - **Volume e operação:** qual o volume inicial e de pico de usuários e consultas? Onde a aplicação será publicada, quais ambientes serão necessários, quem fará monitoramento e suporte e quais métricas, alertas e procedimentos de resposta serão exigidos?
 - **Privacidade e segurança:** haverá analytics ou coleta de dados pessoais? Quais dados poderão ser guardados, por quanto tempo e com qual consentimento? Quais requisitos legais e corporativos se aplicam a privacidade, segurança, retenção, gestão de segredos e proteção contra abuso?
 - **Acessibilidade e usabilidade:** WCAG 2.2 AA será o nível exigido? Qual método e qual meta quantitativa serão usados para avaliar usabilidade e sucesso dos fluxos?
-- **Falhas e conectividade:** quais timeouts e mensagens serão usados? Em falhas do provedor, será exibido erro ou cache e por quanto tempo? A aplicação deve oferecer algum comportamento offline?
+- **Falhas e conectividade:** confirmar o timeout por requisição: (A) 5 segundos, (B) 8 segundos, recomendação inicial, ou (C) 10 segundos. Para resposta parcial, escolher: (A) apresentar dados disponíveis e marcar ausências, recomendação inicial, ou (B) ocultar a seção inteira se faltar algum campo obrigatório; definir quais campos são essenciais. Para dados antigos em falhas, escolher: (A) não usar cache no MVP, recomendação inicial, ou (B) mostrar a última resposta com horário e indicação explícita de dado desatualizado. Uma nova tentativa exigirá apenas reenviar a busca ou deve haver uma ação explícita de “Tentar novamente”? A aplicação deve oferecer algum comportamento offline?
 - **Plataforma e conteúdo:** a experiência será apenas web responsiva ou há intenção de aplicativo nativo futuro? Existem identidade visual, tom de voz ou diretrizes de conteúdo a seguir?
