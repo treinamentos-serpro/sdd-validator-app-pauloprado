@@ -121,7 +121,7 @@ function mapCurrent(value: unknown): CurrentWeather {
 }
 
 function mapForecast(value: unknown): ForecastDay[] {
-  if (!isRecord(value) || !Array.isArray(value.time) || value.time.length < 5) {
+  if (!isRecord(value) || !Array.isArray(value.time)) {
     throw new WeatherServiceError('Resposta incompleta do serviço meteorológico.');
   }
 
@@ -134,7 +134,7 @@ function mapForecast(value: unknown): ForecastDay[] {
     date,
     temperatureMinC: dailyNumber(value, 'temperature_2m_min', index),
     temperatureMaxC: dailyNumber(value, 'temperature_2m_max', index),
-    precipitationProbabilityMaxPct: dailyNumber(value, 'precipitation_probability_max', index),
+    precipitationProbabilityMaxPct: dailyNumber(value, 'precipitation_probability_max', index) ?? 0,
     precipitationSumMm: dailyNumber(value, 'precipitation_sum', index),
     windSpeedMaxKmh: dailyNumber(value, 'wind_speed_10m_max', index),
     weatherCode: dailyNumber(value, 'weather_code', index),

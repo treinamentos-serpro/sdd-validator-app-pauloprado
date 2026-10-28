@@ -274,6 +274,88 @@ describe('getWeather', () => {
     expect(result.forecast[0].precipitationProbabilityMaxPct).toBe(0);
   });
 
+  it('preserves valid current fields when temperature is missing', async () => {
+    const payload = makeWeatherPayload();
+    const current: Record<string, unknown> = { ...payload.current };
+    delete current.temperature_2m;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ...payload, current }),
+      }),
+    );
+
+    const result = await getWeather(city);
+
+    expect(result.current.temperatureC).toBeNull();
+    expect(result.current.relativeHumidityPct).toBe(68);
+    expect(result.current.windSpeedKmh).toBe(12.3);
+  });
+
+  it('keeps the available days and marks missing daily values in a partial forecast', async () => {
+    const payload = makeWeatherPayload();
+    const daily = {
+      time: ['2026-10-27', '2026-10-28'],
+      temperature_2m_min: [16.2],
+      temperature_2m_max: [24.5, 25.1],
+      precipitation_probability_max: [10, 20],
+      precipitation_sum: [0],
+      wind_speed_10m_max: [18, 20.5],
+      weather_code: [1, 3],
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ...payload, daily }),
+      }),
+    );
+
+    const result = await getWeather(city);
+
+    expect(result.forecast).toHaveLength(2);
+    expect(result.forecast[0].temperatureMinC).toBe(16.2);
+    expect(result.forecast[1].temperatureMinC).toBeNull();
+    expect(result.forecast[1].temperatureMaxC).toBe(25.1);
+    expect(result.forecast[1].precipitationSumMm).toBeNull();
+  });
+
+  it.each([429, 503])('throws WeatherServiceError for forecast HTTP %i', async (status) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status }));
+
+    await expect(getWeather(city)).rejects.toMatchObject({
+      name: 'WeatherServiceError',
+      status,
+    });
+  });
+
+  it('throws WeatherServiceError when the forecast response has invalid JSON', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => {
+          throw new SyntaxError('invalid JSON');
+        },
+      }),
+    );
+
+    await expect(getWeather(city)).rejects.toMatchObject({
+      name: 'WeatherServiceError',
+      message: 'Resposta inválida do serviço meteorológico.',
+    });
+  });
+
+  it('throws WeatherServiceError for forecast network failures', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('network failure')));
+
+    await expect(getWeather(city)).rejects.toMatchObject({
+      name: 'WeatherServiceError',
+      message: 'Falha de rede.',
+    });
+  });
+
   it.each([
     ['current ausente', { daily: makeWeatherPayload().daily }],
     ['daily ausente', { current: makeWeatherPayload().current }],
