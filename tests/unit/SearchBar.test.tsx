@@ -38,6 +38,17 @@ describe('SearchBar', () => {
     expect(onSearch).toHaveBeenCalledWith('São Paulo');
   });
 
+  it('submits the entered term when the search button is clicked', async () => {
+    const user = userEvent.setup();
+    const onSearch = vi.fn();
+    render(<SearchBar onSearch={onSearch} />);
+
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar cidade' }), 'Recife');
+    await user.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    expect(onSearch).toHaveBeenCalledExactlyOnceWith('Recife');
+  });
+
   it('disables the input and submit button when disabled', () => {
     render(<SearchBar onSearch={vi.fn()} disabled />);
 
