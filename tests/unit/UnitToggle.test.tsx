@@ -1,51 +1,90 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect } from 'vitest';
 import { useState } from 'react';
-import UnitToggle from '../../src/components/UnitToggle';
+import { describe, expect, it, vi } from 'vitest';
 import CurrentWeather from '../../src/components/CurrentWeather';
-import type { City, CurrentWeather as CurrentWeatherType, Unit } from '../../src/types/weather';
+import UnitToggle from '../../src/components/UnitToggle';
+import { mockWeatherData } from '../../src/mocks/weatherData';
+import type { Unit } from '../../src/types/weather';
 
-const city: City = {
-  id: 1,
-  name: 'Seattle',
-  country: 'Estados Unidos',
-  admin1: 'Washington',
-  latitude: 47.6,
-  longitude: -122.33,
-};
-
-const current: CurrentWeatherType = {
-  time: '2026-06-16T12:00',
-  temperature: 0, // 0°C => 32°F (fácil de verificar)
-  humidity: 80,
-  windSpeed: 10,
-  pressure: 1015,
-  precipitation: 0,
-  weatherCode: 3,
-};
-
-function Harness() {
+function UnitWeatherHarness() {
   const [unit, setUnit] = useState<Unit>('celsius');
+
   return (
     <>
       <UnitToggle unit={unit} onChange={setUnit} />
-      <CurrentWeather city={city} current={current} unit={unit} />
+      <CurrentWeather
+        city={mockWeatherData.city}
+        current={{ ...mockWeatherData.current, temperatureC: 0 }}
+        unit={unit}
+      />
     </>
   );
 }
 
-describe('UnitToggle + CurrentWeather', () => {
-  it('converte a temperatura ao alternar a unidade', async () => {
-    render(<Harness />);
-    expect(screen.getByText('0°')).toBeInTheDocument();
+describe('UnitToggle', () => {
+  it('exposes a labeled group and indicates the selected unit', () => {
+    render(<UnitToggle unit="celsius" onChange={vi.fn()} />);
 
-    await userEvent.click(screen.getByRole('button', { name: '°F' }));
-    expect(screen.getByText('32°')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Unidade de temperatura' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Celsius' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Fahrenheit' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
   });
 
-  it('expõe os botões com estado pressionado acessível', () => {
-    render(<Harness />);
-    expect(screen.getByRole('button', { name: '°C' })).toHaveAttribute('aria-pressed', 'true');
+  it('calls onChange when a unit button is selected', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const { rerender } = render(<UnitToggle unit="celsius" onChange={onChange} />);
+
+    await user.click(screen.getByRole('button', { name: 'Fahrenheit' }));
+    expect(onChange).toHaveBeenCalledWith('fahrenheit');
+
+    rerender(<UnitToggle unit="fahrenheit" onChange={onChange} />);
+    expect(screen.getByRole('button', { name: 'Fahrenheit' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Celsius' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('supports Tab, Enter, and Space for keyboard navigation and activation', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<UnitToggle unit="celsius" onChange={onChange} />);
+
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Celsius' })).toHaveFocus();
+    await user.keyboard('{Enter}');
+    expect(onChange).toHaveBeenCalledWith('celsius');
+
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Fahrenheit' })).toHaveFocus();
+    await user.keyboard(' ');
+    expect(onChange).toHaveBeenCalledWith('fahrenheit');
+  });
+
+  it('updates CurrentWeather from 0 Celsius to 32 Fahrenheit when clicked', async () => {
+    const user = userEvent.setup();
+    render(<UnitWeatherHarness />);
+
+    const weatherRegion = screen.getByRole('region', { name: mockWeatherData.city.name });
+    expect(weatherRegion).toHaveTextContent('0 °C');
+
+    await user.click(screen.getByRole('button', { name: 'Fahrenheit' }));
+
+    expect(weatherRegion).toHaveTextContent('32 °F');
+    expect(weatherRegion).not.toHaveTextContent('0 °C');
+    expect(screen.getByRole('button', { name: 'Fahrenheit', pressed: true })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Celsius' }));
+
+    expect(weatherRegion).toHaveTextContent('0 °C');
+    expect(weatherRegion).not.toHaveTextContent('32 °F');
   });
 });

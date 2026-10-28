@@ -1,17 +1,18 @@
 interface EmptyStateProps {
   title: string;
-  hint?: string;
+  tip: string;
+  announce?: boolean;
 }
 
-/** Estado vazio (nenhuma busca feita ou nenhum resultado). */
-export default function EmptyState({ title, hint }: EmptyStateProps) {
+export default function EmptyState({ title, tip, announce = false }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center gap-2 py-16 text-center">
-      <span aria-hidden="true" className="text-4xl">
-        🌍
-      </span>
-      <p className="text-white/80">{title}</p>
-      {hint && <p className="text-sm text-white/50">{hint}</p>}
-    </div>
+    <section
+      role={announce ? 'status' : undefined}
+      aria-live={announce ? 'polite' : undefined}
+      className="rounded-xl border border-white/10 bg-white/5 p-5 text-white backdrop-blur-md"
+    >
+      <h2 className="text-lg font-semibold">{title}</h2>
+      <p className="mt-2 text-sm text-white/70">{tip}</p>
+    </section>
   );
 }

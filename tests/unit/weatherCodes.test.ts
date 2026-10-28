@@ -1,15 +1,37 @@
-import { describe, it, expect } from 'vitest';
-import { getWeatherInfo, getWeatherLabel, getWeatherIcon } from '../../src/lib/weatherCodes';
+import { describe, expect, it } from 'vitest';
+import { getWeatherCodePresentation } from '../../src/lib/weatherCodes';
 
-describe('weatherCodes', () => {
-  it('mapeia códigos conhecidos', () => {
-    expect(getWeatherLabel(0)).toBe('Céu limpo');
-    expect(getWeatherIcon(95)).toBe('⛈️');
+describe('getWeatherCodePresentation', () => {
+  it('returns the label and icon for clear skies', () => {
+    expect(getWeatherCodePresentation(0)).toEqual({
+      icon: '☀️',
+      label: 'Céu limpo',
+    });
   });
 
-  it('usa fallback para código desconhecido', () => {
-    const info = getWeatherInfo(123456);
-    expect(info.label).toBe('Condição desconhecida');
-    expect(info.icon).toBeTruthy();
+  it('returns the label and icon for light rain', () => {
+    expect(getWeatherCodePresentation(61)).toEqual({
+      icon: '🌧️',
+      label: 'Chuva fraca',
+    });
+  });
+
+  it('returns a fallback for an unknown integer code', () => {
+    expect(getWeatherCodePresentation(999)).toEqual({
+      icon: '🌡️',
+      label: 'Condição desconhecida',
+    });
+  });
+
+  it.each([
+    null,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    1.5,
+  ])('marks the condition as unavailable for %s', (code) => {
+    expect(getWeatherCodePresentation(code)).toEqual({
+      icon: '🌡️',
+      label: 'Condição indisponível',
+    });
   });
 });
