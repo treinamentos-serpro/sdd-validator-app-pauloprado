@@ -52,7 +52,7 @@ describe('CurrentWeather', () => {
     );
 
     expect(screen.getByText('Condição indisponível')).toBeInTheDocument();
-    expect(screen.getAllByText('Indisponível')).toHaveLength(5);
+    expect(screen.getAllByText('—')).toHaveLength(5);
   });
 
   it('keeps valid metrics visible when current temperature is unavailable', () => {
@@ -64,7 +64,7 @@ describe('CurrentWeather', () => {
       />,
     );
 
-    expect(screen.getByText('Indisponível')).toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument();
     expect(screen.getByText('68 %')).toBeInTheDocument();
     expect(screen.getByText('12,3 km/h')).toBeInTheDocument();
     expect(screen.queryByText('18,4 °C')).not.toBeInTheDocument();

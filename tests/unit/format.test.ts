@@ -29,6 +29,6 @@ describe('formatPrecipitationProbability', () => {
     Number.NaN,
     Number.POSITIVE_INFINITY,
   ])('marks %s as unavailable', (probability) => {
-    expect(formatPrecipitationProbability(probability)).toBe('Indisponível');
+    expect(formatPrecipitationProbability(probability)).toBe('—');
   });
 });

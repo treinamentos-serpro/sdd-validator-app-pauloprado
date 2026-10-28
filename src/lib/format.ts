@@ -1,3 +1,5 @@
+export const UNAVAILABLE_VALUE = '—';
+
 export function formatDayLabel(date: string): string {
   const parsedDate = new Date(`${date}T12:00:00Z`);
 
@@ -15,7 +17,7 @@ export function formatDayLabel(date: string): string {
 
 export function formatPrecipitationProbability(probabilityPct: number | null): string {
   if (probabilityPct === null || !Number.isFinite(probabilityPct)) {
-    return 'Indisponível';
+    return UNAVAILABLE_VALUE;
   }
 
   return `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(probabilityPct)}%`;

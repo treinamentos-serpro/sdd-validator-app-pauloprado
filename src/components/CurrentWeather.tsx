@@ -1,3 +1,4 @@
+import { UNAVAILABLE_VALUE } from '../lib/format';
 import { formatTemperature } from '../lib/temperature';
 import { getWeatherCodePresentation } from '../lib/weatherCodes';
 import type { City, CurrentWeather as CurrentWeatherData, Unit } from '../types/weather';
@@ -10,7 +11,7 @@ interface CurrentWeatherProps {
 
 function formatMetric(value: number | null, suffix: string): string {
   if (value === null || !Number.isFinite(value)) {
-    return 'Indisponível';
+    return UNAVAILABLE_VALUE;
   }
 
   return `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(value)} ${suffix}`;

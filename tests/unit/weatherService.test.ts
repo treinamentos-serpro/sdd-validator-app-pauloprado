@@ -54,6 +54,22 @@ describe('searchCities', () => {
     );
   });
 
+  it('leaves optional geocoding context absent instead of mapping undefined', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          results: [{ name: 'Recife', latitude: -8.05, longitude: -34.9 }],
+        }),
+      }),
+    );
+
+    await expect(searchCities('Recife')).resolves.toEqual([
+      { name: 'Recife', latitude: -8.05, longitude: -34.9 },
+    ]);
+  });
+
   it('returns an empty array when the endpoint has no results', async () => {
     vi.stubGlobal(
       'fetch',
@@ -311,6 +327,58 @@ describe('getWeather', () => {
     const result = await getWeather(city);
 
     expect(result.forecast[0].precipitationProbabilityMaxPct).toBe(0);
+  });
+
+  it('maps null and absent weather fields to null without producing non-finite values', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          current: {
+            time: '2026-10-27T09:00',
+            temperature_2m: null,
+            apparent_temperature: null,
+            relative_humidity_2m: null,
+            precipitation: null,
+            surface_pressure: null,
+            wind_speed_10m: null,
+            weather_code: null,
+            is_day: null,
+          },
+          daily: {
+            time: ['2026-10-27'],
+            temperature_2m_min: [null],
+            temperature_2m_max: [Number.NaN],
+          },
+        }),
+      }),
+    );
+
+    const result = await getWeather(city);
+
+    expect(result.current).toEqual({
+      time: '2026-10-27T09:00',
+      temperatureC: null,
+      apparentTemperatureC: null,
+      relativeHumidityPct: null,
+      precipitationMm: null,
+      pressureHpa: null,
+      windSpeedKmh: null,
+      weatherCode: null,
+      isDay: null,
+    });
+    expect(result.forecast).toEqual([
+      {
+        date: '2026-10-27',
+        temperatureMinC: null,
+        temperatureMaxC: null,
+        precipitationProbabilityMaxPct: 0,
+        precipitationSumMm: null,
+        windSpeedMaxKmh: null,
+        weatherCode: null,
+      },
+    ]);
   });
 
   it.each([429, 503])('returns a friendly error for forecast HTTP %i', async (status) => {

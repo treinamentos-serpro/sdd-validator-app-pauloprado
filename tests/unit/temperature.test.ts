@@ -29,8 +29,8 @@ describe('formatTemperature', () => {
   });
 
   it('formats unavailable temperatures', () => {
-    expect(formatTemperature(null, 'celsius')).toBe('Indisponível');
-    expect(formatTemperature(Number.NaN, 'fahrenheit')).toBe('Indisponível');
+    expect(formatTemperature(null, 'celsius')).toBe('—');
+    expect(formatTemperature(Number.NaN, 'fahrenheit')).toBe('—');
   });
 });
 

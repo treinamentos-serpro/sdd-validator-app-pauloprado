@@ -30,4 +30,21 @@ describe('ForecastList', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Previsão indisponível');
     expect(screen.queryByRole('article')).not.toBeInTheDocument();
   });
+
+  it('uses safe placeholders for null and non-finite fields in a forecast card', () => {
+    const partialDay = {
+      ...mockWeatherData.forecast[0],
+      temperatureMinC: null,
+      temperatureMaxC: Number.NaN,
+      precipitationProbabilityMaxPct: null,
+      weatherCode: null,
+    };
+    render(<ForecastList forecast={[partialDay]} unit="celsius" />);
+
+    const card = screen.getByRole('article', { name: 'Previsão para terça-feira, 27 de out.' });
+    expect(within(card).getAllByText('—')).toHaveLength(2);
+    expect(within(card).getByText('Chuva: —')).toBeInTheDocument();
+    expect(within(card).getByText('Condição indisponível')).toBeInTheDocument();
+    expect(within(card).queryByText(/NaN|undefined/)).not.toBeInTheDocument();
+  });
 });
