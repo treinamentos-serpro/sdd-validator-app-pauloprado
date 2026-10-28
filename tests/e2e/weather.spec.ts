@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('busca uma cidade, mostra a previsão e converte a temperatura para Fahrenheit', async ({
-  page,
-}) => {
+test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: new Date('2026-10-28T12:00:00Z') });
 
   await page.route('https://geocoding-api.open-meteo.com/**', async (route) => {
@@ -51,7 +49,11 @@ test('busca uma cidade, mostra a previsão e converte a temperatura para Fahrenh
       },
     });
   });
+});
 
+test('busca uma cidade, mostra a previsão e converte a temperatura para Fahrenheit', async ({
+  page,
+}) => {
   await page.goto('/');
   await page.getByRole('searchbox', { name: 'Buscar cidade' }).fill('São Paulo');
   await page.getByRole('button', { name: 'Buscar', exact: true }).click();
@@ -69,4 +71,49 @@ test('busca uma cidade, mostra a previsão e converte a temperatura para Fahrenh
   await expect(currentWeather.getByText('32 °F', { exact: true })).toBeVisible();
   await expect(currentWeather.getByText('0 °C', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Fahrenheit', pressed: true })).toBeVisible();
+});
+
+test('mostra estado vazio quando o geocoding retorna um objeto sem results', async ({ page }) => {
+  let forecastRequests = 0;
+  page.on('request', (request) => {
+    if (new URL(request.url()).hostname === 'api.open-meteo.com') {
+      forecastRequests += 1;
+    }
+  });
+  await page.route('https://geocoding-api.open-meteo.com/**', async (route) => {
+    await route.fulfill({ json: {} });
+  });
+
+  await page.goto('/');
+  await page.getByRole('searchbox', { name: 'Buscar cidade' }).fill('Cidade inexistente');
+  await page.getByRole('button', { name: 'Buscar', exact: true }).click();
+
+  await expect(page.getByRole('heading', { name: 'Nenhuma cidade encontrada' })).toBeVisible();
+  await expect(page.getByRole('status')).toContainText('Nenhuma cidade encontrada');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Previsão de 5 dias' })).toHaveCount(0);
+  await expect(page.getByRole('searchbox', { name: 'Buscar cidade' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Buscar', exact: true })).toBeEnabled();
+  expect(forecastRequests).toBe(0);
+});
+
+test('renderiza o clima após a busca em viewport mobile de 375x812', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/');
+  await page.getByRole('searchbox', { name: 'Buscar cidade' }).fill('São Paulo');
+  await page.getByRole('button', { name: 'Buscar', exact: true }).click();
+
+  await expect(page.getByRole('heading', { name: 'São Paulo', exact: true })).toBeVisible();
+  const currentWeather = page.getByRole('region', { name: 'São Paulo', exact: true });
+  await expect(currentWeather.getByText('0 °C', { exact: true })).toBeVisible();
+  const forecast = page.getByRole('region', { name: 'Previsão de 5 dias' });
+  await expect(forecast).toBeVisible();
+  await expect(forecast.getByRole('article')).toHaveCount(5);
+
+  await page.getByRole('button', { name: 'Fahrenheit', exact: true }).click();
+
+  await expect(currentWeather.getByText('32 °F', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
 });
