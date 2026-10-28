@@ -28,8 +28,8 @@ const initialState: WeatherState = {
   query: '',
 };
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Não foi possível obter os dados.';
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.name === 'WeatherServiceError' ? error.message : fallback;
 }
 
 export default function useWeather(): UseWeatherResult {
@@ -63,7 +63,7 @@ export default function useWeather(): UseWeatherResult {
         ...current,
         status: 'error',
         data: null,
-        error: errorMessage(error),
+        error: errorMessage(error, 'Não foi possível obter os dados'),
       }));
     }
   }
@@ -104,7 +104,7 @@ export default function useWeather(): UseWeatherResult {
         ...current,
         status: 'error',
         data: null,
-        error: errorMessage(error),
+        error: errorMessage(error, 'Falha na busca'),
       }));
     }
   }

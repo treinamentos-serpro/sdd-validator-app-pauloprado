@@ -62,14 +62,17 @@ describe('useWeather', () => {
     expect(getWeather).not.toHaveBeenCalled();
   });
 
-  it('retries only the weather request after a weather failure', async () => {
+  it('retries only the weather request after an offline failure', async () => {
     vi.mocked(searchCities).mockResolvedValue([cityA]);
-    vi.mocked(getWeather).mockRejectedValueOnce(new Error('Falha meteorológica'));
+    vi.mocked(getWeather).mockRejectedValueOnce(new TypeError('Failed to fetch'));
     vi.mocked(getWeather).mockResolvedValueOnce(weatherA);
     const { result } = renderHook(() => useWeather());
 
     await act(async () => result.current.search('Cidade A'));
-    expect(result.current).toMatchObject({ status: 'error', error: 'Falha meteorológica' });
+    expect(result.current).toMatchObject({
+      status: 'error',
+      error: 'Não foi possível obter os dados',
+    });
 
     await act(async () => result.current.retry());
 
@@ -79,8 +82,8 @@ describe('useWeather', () => {
     expect(result.current.data).toEqual(weatherA);
   });
 
-  it('retries a failed search and then loads its first result', async () => {
-    vi.mocked(searchCities).mockRejectedValueOnce(new Error('Falha na busca'));
+  it('retries an offline search and then loads its first result', async () => {
+    vi.mocked(searchCities).mockRejectedValueOnce(new TypeError('Failed to fetch'));
     vi.mocked(searchCities).mockResolvedValueOnce([cityA]);
     vi.mocked(getWeather).mockResolvedValue(weatherA);
     const { result } = renderHook(() => useWeather());

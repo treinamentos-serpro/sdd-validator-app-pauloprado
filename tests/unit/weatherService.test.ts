@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getWeather, searchCities, WeatherServiceError } from '../../src/services/weatherService';
+import { getWeather, searchCities } from '../../src/services/weatherService';
 import type { City } from '../../src/types/weather';
 
 afterEach(() => {
@@ -72,8 +72,11 @@ describe('searchCities', () => {
   it('throws WeatherServiceError for a non-ok response', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429 }));
 
-    await expect(searchCities('Recife')).rejects.toBeInstanceOf(WeatherServiceError);
-    await expect(searchCities('Recife')).rejects.toMatchObject({ status: 429 });
+    await expect(searchCities('Recife')).rejects.toMatchObject({
+      name: 'WeatherServiceError',
+      message: 'Falha na busca',
+      status: 429,
+    });
   });
 
   it('throws WeatherServiceError for invalid JSON', async () => {
@@ -87,7 +90,10 @@ describe('searchCities', () => {
       }),
     );
 
-    await expect(searchCities('Recife')).rejects.toBeInstanceOf(WeatherServiceError);
+    await expect(searchCities('Recife')).rejects.toMatchObject({
+      name: 'WeatherServiceError',
+      message: 'Falha na busca',
+    });
   });
 
   it('converts network failures to WeatherServiceError', async () => {
@@ -95,7 +101,7 @@ describe('searchCities', () => {
 
     await expect(searchCities('Recife')).rejects.toMatchObject({
       name: 'WeatherServiceError',
-      message: 'Falha de rede.',
+      message: 'Falha na busca',
     });
   });
 
@@ -119,7 +125,40 @@ describe('searchCities', () => {
     const request = searchCities('Recife');
     const rejection = expect(request).rejects.toMatchObject({
       name: 'WeatherServiceError',
-      message: 'A requisição demorou demais.',
+      message: 'A consulta demorou demais',
+    });
+    await vi.advanceTimersByTimeAsync(10_000);
+    await rejection;
+
+    expect(requestSignal?.aborted).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('keeps the timeout active while reading the response body', async () => {
+    vi.useFakeTimers();
+    let requestSignal: AbortSignal | undefined;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, init: RequestInit) => {
+        requestSignal = init.signal ?? undefined;
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            new Promise((_resolve, reject) => {
+              requestSignal?.addEventListener(
+                'abort',
+                () => reject(new DOMException('Aborted', 'AbortError')),
+                { once: true },
+              );
+            }),
+        });
+      }),
+    );
+
+    const request = searchCities('Recife');
+    const rejection = expect(request).rejects.toMatchObject({
+      name: 'WeatherServiceError',
+      message: 'A consulta demorou demais',
     });
     await vi.advanceTimersByTimeAsync(10_000);
     await rejection;
@@ -274,12 +313,34 @@ describe('getWeather', () => {
     expect(result.forecast[0].precipitationProbabilityMaxPct).toBe(0);
   });
 
+  it.each([429, 503])('returns a friendly error for forecast HTTP %i', async (status) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status }));
+
+    await expect(getWeather(city)).rejects.toMatchObject({
+      name: 'WeatherServiceError',
+      message: 'Não foi possível obter os dados',
+      status,
+    });
+  });
+
+  it('returns a friendly error when the forecast request is offline', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+
+    await expect(getWeather(city)).rejects.toMatchObject({
+      name: 'WeatherServiceError',
+      message: 'Não foi possível obter os dados',
+    });
+  });
+
   it.each([
     ['current ausente', { daily: makeWeatherPayload().daily }],
     ['daily ausente', { current: makeWeatherPayload().current }],
   ])('throws WeatherServiceError quando %s', async (_description, payload) => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => payload }));
 
-    await expect(getWeather(city)).rejects.toBeInstanceOf(WeatherServiceError);
+    await expect(getWeather(city)).rejects.toMatchObject({
+      name: 'WeatherServiceError',
+      message: 'Não foi possível obter os dados',
+    });
   });
 });
