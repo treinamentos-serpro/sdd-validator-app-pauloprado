@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import CurrentWeather from './components/CurrentWeather';
 import ForecastList from './components/ForecastList';
 import SearchBar from './components/SearchBar';
@@ -12,6 +12,13 @@ import type { Unit } from './types/weather';
 export default function App() {
   const weather = useWeather();
   const [unit, setUnit] = useState<Unit>('celsius');
+  const weatherHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (weather.status === 'success') {
+      weatherHeadingRef.current?.focus();
+    }
+  }, [weather.status]);
 
   return (
     <div className="min-h-screen bg-night-900 text-white">
@@ -66,7 +73,12 @@ export default function App() {
 
         {weather.status === 'success' && weather.data !== null && (
           <>
-            <CurrentWeather city={weather.data.city} current={weather.data.current} unit={unit} />
+            <CurrentWeather
+              city={weather.data.city}
+              current={weather.data.current}
+              unit={unit}
+              headingRef={weatherHeadingRef}
+            />
             <ForecastList forecast={weather.data.forecast} unit={unit} />
           </>
         )}

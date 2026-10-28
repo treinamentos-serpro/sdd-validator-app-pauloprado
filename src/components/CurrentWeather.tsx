@@ -1,3 +1,4 @@
+import type { Ref } from 'react';
 import { UNAVAILABLE_VALUE } from '../lib/format';
 import { formatTemperature } from '../lib/temperature';
 import { getWeatherCodePresentation } from '../lib/weatherCodes';
@@ -7,6 +8,7 @@ interface CurrentWeatherProps {
   city: City;
   current: CurrentWeatherData;
   unit: Unit;
+  headingRef?: Ref<HTMLHeadingElement>;
 }
 
 function formatMetric(value: number | null, suffix: string): string {
@@ -17,7 +19,7 @@ function formatMetric(value: number | null, suffix: string): string {
   return `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(value)} ${suffix}`;
 }
 
-export default function CurrentWeather({ city, current, unit }: CurrentWeatherProps) {
+export default function CurrentWeather({ city, current, unit, headingRef }: CurrentWeatherProps) {
   const condition = getWeatherCodePresentation(current.weatherCode);
   const locationDetails = [city.admin1, city.country].filter(Boolean).join(' · ');
 
@@ -29,7 +31,12 @@ export default function CurrentWeather({ city, current, unit }: CurrentWeatherPr
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-medium uppercase tracking-wide text-white/65">Clima atual</p>
-          <h2 id="current-weather-heading" className="mt-1 break-words text-2xl font-semibold">
+          <h2
+            id="current-weather-heading"
+            ref={headingRef}
+            tabIndex={-1}
+            className="mt-1 break-words text-2xl font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400"
+          >
             {city.name}
           </h2>
           {locationDetails && <p className="mt-1 text-sm text-white/65">{locationDetails}</p>}

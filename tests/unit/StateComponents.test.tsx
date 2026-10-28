@@ -9,7 +9,8 @@ describe('state components', () => {
   it('announces loading status', () => {
     render(<LoadingState />);
 
-    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
+    expect(screen.getByRole('status')).not.toHaveAttribute('aria-busy');
     expect(screen.getByText('Carregando...')).toBeInTheDocument();
   });
 

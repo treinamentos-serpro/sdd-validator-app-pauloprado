@@ -40,9 +40,12 @@ describe('App', () => {
     await user.keyboard('{Enter}');
 
     expect(screen.getByRole('status')).toHaveTextContent('Carregando...');
+    expect(screen.getByRole('search')).toHaveAttribute('aria-busy', 'true');
     await act(async () => resolveCities([mockWeatherData.city]));
     expect(await screen.findByText('Previsão de 5 dias')).toBeInTheDocument();
     expect(screen.getByText('18,4 °C')).toBeInTheDocument();
+    expect(screen.getByRole('search')).toHaveAttribute('aria-busy', 'false');
+    expect(screen.getByRole('heading', { name: 'São Paulo' })).toHaveFocus();
   });
 
   it('shows the empty state when the search returns no cities', async () => {

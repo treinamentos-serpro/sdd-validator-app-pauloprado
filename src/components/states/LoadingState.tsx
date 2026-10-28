@@ -3,7 +3,6 @@ export default function LoadingState() {
     <div
       role="status"
       aria-live="polite"
-      aria-busy="true"
       className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-white/80 backdrop-blur-md"
     >
       <span

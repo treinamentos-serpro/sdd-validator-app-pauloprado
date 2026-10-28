@@ -38,6 +38,20 @@ describe('SearchBar', () => {
     expect(onSearch).toHaveBeenCalledWith('São Paulo');
   });
 
+  it('trims external spaces and preserves accents and apostrophes', async () => {
+    const user = userEvent.setup();
+    const onSearch = vi.fn();
+    render(<SearchBar onSearch={onSearch} />);
+
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Buscar cidade' }),
+      "  São João d'Aliança  ",
+    );
+    await user.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    expect(onSearch).toHaveBeenCalledExactlyOnceWith("São João d'Aliança");
+  });
+
   it('submits the entered term when the search button is clicked', async () => {
     const user = userEvent.setup();
     const onSearch = vi.fn();
@@ -54,5 +68,6 @@ describe('SearchBar', () => {
 
     expect(screen.getByRole('searchbox', { name: 'Buscar cidade' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Buscar' })).toBeDisabled();
+    expect(screen.getByRole('search')).toHaveAttribute('aria-busy', 'true');
   });
 });
