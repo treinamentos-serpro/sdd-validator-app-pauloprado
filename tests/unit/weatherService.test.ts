@@ -8,11 +8,11 @@ afterEach(() => {
 });
 
 describe('searchCities', () => {
-  it('returns an empty array without requesting for an empty name', async () => {
+  it.each(['', '   '])('returns an empty array without requesting for %j', async (name) => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(searchCities('   ')).resolves.toEqual([]);
+    await expect(searchCities(name)).resolves.toEqual([]);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -59,6 +59,12 @@ describe('searchCities', () => {
       'fetch',
       vi.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [] }) }),
     );
+
+    await expect(searchCities('Recife')).resolves.toEqual([]);
+  });
+
+  it('returns an empty array when results is absent', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
 
     await expect(searchCities('Recife')).resolves.toEqual([]);
   });
@@ -199,16 +205,73 @@ describe('getWeather', () => {
       isDay: true,
     });
     expect(result.forecast).toHaveLength(5);
-    expect(result.forecast[0]).toEqual({
-      date: '2026-10-27',
-      temperatureMinC: 16.2,
-      temperatureMaxC: 24.5,
-      precipitationProbabilityMaxPct: 10,
-      precipitationSumMm: 0,
-      windSpeedMaxKmh: 18,
-      weatherCode: 1,
-    });
+    expect(result.forecast).toEqual([
+      {
+        date: '2026-10-27',
+        temperatureMinC: 16.2,
+        temperatureMaxC: 24.5,
+        precipitationProbabilityMaxPct: 10,
+        precipitationSumMm: 0,
+        windSpeedMaxKmh: 18,
+        weatherCode: 1,
+      },
+      {
+        date: '2026-10-28',
+        temperatureMinC: 17,
+        temperatureMaxC: 25.1,
+        precipitationProbabilityMaxPct: 20,
+        precipitationSumMm: 1.2,
+        windSpeedMaxKmh: 20.5,
+        weatherCode: 3,
+      },
+      {
+        date: '2026-10-29',
+        temperatureMinC: 17.4,
+        temperatureMaxC: 26.3,
+        precipitationProbabilityMaxPct: 35,
+        precipitationSumMm: 2.4,
+        windSpeedMaxKmh: 21.2,
+        weatherCode: 61,
+      },
+      {
+        date: '2026-10-30',
+        temperatureMinC: 18.1,
+        temperatureMaxC: 25.8,
+        precipitationProbabilityMaxPct: 15,
+        precipitationSumMm: 0.4,
+        windSpeedMaxKmh: 19.6,
+        weatherCode: 2,
+      },
+      {
+        date: '2026-10-31',
+        temperatureMinC: 16.8,
+        temperatureMaxC: 24.9,
+        precipitationProbabilityMaxPct: 10,
+        precipitationSumMm: 0,
+        windSpeedMaxKmh: 17.3,
+        weatherCode: 1,
+      },
+    ]);
     expect(Number.isNaN(Date.parse(result.retrievedAt))).toBe(false);
+  });
+
+  it('maps a null daily precipitation probability to zero', async () => {
+    const payload = makeWeatherPayload();
+    const daily = {
+      ...payload.daily,
+      precipitation_probability_max: [null, 20, 35, 15, 10],
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ...payload, daily }),
+      }),
+    );
+
+    const result = await getWeather(city);
+
+    expect(result.forecast[0].precipitationProbabilityMaxPct).toBe(0);
   });
 
   it.each([
